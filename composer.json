@@ -14,7 +14,8 @@
     "require": {
         "php": "^8.0",
         "contao/core-bundle": "^5.3",
-        "codefog/tags-bundle": "^3.3"
+        "codefog/tags-bundle": "^3.3",
+        "loupe/loupe": "^0.12.2"
     },
     "conflict": {
         "contao/manager-plugin": "<2.0 || >=3.0"

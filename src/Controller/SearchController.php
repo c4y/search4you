@@ -119,6 +119,23 @@ class SearchController extends AbstractController
     }
     
     /**
+     * Ensure string is properly UTF-8 encoded
+     * 
+     * @param mixed $data The data to clean
+     * @return mixed The cleaned data
+     */
+    private function ensureUtf8($data)
+    {
+        if (is_string($data)) {
+            // Remove any invalid UTF-8 characters
+            return mb_convert_encoding($data, 'UTF-8', 'UTF-8');
+        } elseif (is_array($data)) {
+            return array_map([$this, 'ensureUtf8'], $data);
+        }
+        return $data;
+    }
+
+    /**
      * @Route("/search-lite/search", name="c4y_search_api")
      * @return JsonResponse
      */
@@ -192,14 +209,21 @@ class SearchController extends AbstractController
             // Doppelte Tags entfernen und leere Einträge filtern
             $uniqueTags = array_values(array_unique(array_filter(array_map('trim', $allTags))));
             
-            // JSON-Antwort zurückgeben
-            return new JsonResponse([
+            // JSON-Antwort vorbereiten und UTF-8 sicherstellen
+            $responseData = [
                 'query' => $query,
                 'filter_tags' => $tagsFilter ?: null,
-                'results' => $formattedResults, 
+                'results' => $this->ensureUtf8($formattedResults), 
                 'total_hits' => $resultArray['totalHits'] ?? 0,
-                'tags' => $uniqueTags
-            ]);
+                'tags' => $this->ensureUtf8($uniqueTags)
+            ];
+            
+            // JSON-Antwort mit korrekter Kodierung zurückgeben
+            $response = new JsonResponse($responseData);
+            $response->setEncodingOptions(
+                $response->getEncodingOptions() | JSON_INVALID_UTF8_SUBSTITUTE
+            );
+            return $response;
         } catch (\Exception $e) {
             // Bei Fehler entsprechende JSON-Fehlermeldung zurückgeben
             return new JsonResponse([
