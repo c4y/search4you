@@ -281,8 +281,12 @@
         }
     }
 
-    function renderResults() {
-        resultsCountEl.textContent = currentResults.length + ' Treffer';
+    function renderResults(duration = 0) {
+        console.log('renderResults called with duration:', duration);
+        const durationText = duration > 0 ? ` (${Math.round(duration)} ms)` : '';
+        const resultText = `${currentResults.length} Treffer${durationText}`;
+        console.log('Setting results count to:', resultText);
+        resultsCountEl.textContent = resultText;
         
         if (currentResults.length === 0) {
             resultsContainer.innerHTML = '<div class="sl-no-results">Keine Ergebnisse</div>';
@@ -401,40 +405,52 @@
     }
 
     function performSearch(query) {
+        console.log('performSearch called with query:', query);
         currentQuery = query || '';
         
-        if (!query && !activeTagAlias) {
-            currentResults = [];
-            allTags = {};
-            renderResults();
-            renderTags();
-            renderActiveFilters();
-            return;
-        }
+        // Update URL without page reload
+        updateUrl();
         
-        let url = '/search-lite/search?query=' + encodeURIComponent(query || '');
+        // Show loading state
+        console.log('Showing loading state');
+        resultsContainer.innerHTML = '<div class="sl-no-results">Suche läuft...</div>';
+        
+        // Build URL with query and tag filter
+        let url = '/search-lite/search?query=' + encodeURIComponent(query);
         if (activeTagAlias) {
             url += '&tags=' + encodeURIComponent(activeTagAlias);
         }
         
+        // Start timing
+        const startTime = performance.now();
+        
+        // Perform search
         fetch(url)
-            .then(resp => resp.json())
+            .then(response => response.json())
             .then(data => {
-                currentResults = Array.isArray(data.results) ? data.results : [];
+                // Calculate duration in milliseconds
+                const duration = performance.now() - startTime;
+                console.log('Search completed in', duration, 'ms');
                 
-                // Process tags from the API response
+                currentResults = data.results || [];
+                console.log('Found', currentResults.length, 'results');
                 allTags = processTags(data.tags || []);
                 
-                // If we have an active tag alias but not the name, try to get it from the response
-                if (activeTagAlias && !activeTagName) {
-                    activeTagName = allTags[activeTagAlias] || activeTagAlias;
-                }
-                renderResults();
+                // Update UI with search duration
+                console.log('Rendering UI components');
                 renderTags();
+                renderResults(duration);
                 renderActiveFilters();
+                
+                // Update URL with new state
+                updateUrl();
             })
-            .catch(err => {
-                console.error('Search error', err);
+            .catch(error => {
+                console.error('Search error:', error);
+                resultsContainer.innerHTML = '<div class="sl-no-results">Fehler bei der Suche</div>';
+                // Show duration even on error
+                const duration = performance.now() - startTime;
+                resultsCountEl.textContent = `0 Treffer (${Math.round(duration)} ms)`;
             });
     }
 

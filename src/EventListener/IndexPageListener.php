@@ -49,6 +49,7 @@ class IndexPageListener
         $config = Configuration::create()
             ->withPrimaryKey('id')
             ->withSearchableAttributes(['title', 'content'])
+            ->withLanguages(['de', 'fr'])
             ->withFilterableAttributes(['tags']);
 
         return (new LoupeFactory())->create($this->cacheDir, $config);
