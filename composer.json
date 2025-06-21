@@ -1,0 +1,43 @@
+{
+    "name": "c4y/search-lite",
+    "version": "1.0.0",
+    "type": "contao-bundle",
+    "description": "Contao 4/5 Bundle",
+    "homepage": "https://contao4you.de",
+    "license": "LGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Oliver Lohoff",
+            "homepage": "https://contao4you.de"
+        }
+    ],
+    "require": {
+        "php": "^7.4 || ^8.0",
+        "contao/core-bundle": "^5.3"
+    },
+    "conflict": {
+        "contao/manager-plugin": "<2.0 || >=3.0"
+    },
+    "extra": {
+        "contao-manager-plugin": "C4Y\\SearchLiteBundle\\ContaoManager\\Plugin"
+    },
+    "autoload": {
+        "psr-4": {
+            "C4Y\\SearchLiteBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "C4Y\\SearchLiteBundle\\": "tests/"
+        }
+    },
+    "support": {
+        "issues": "https://github.com/c4y/search-lite/issues",
+        "source": "https://github.com/c4y/search-lite"
+    },
+    "scripts": {
+        "cs-fixer": [
+            "vendor/bin/ecs check src/ tests/ --fix --ansi"
+        ]
+    }
+}

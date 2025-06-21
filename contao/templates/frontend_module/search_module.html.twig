@@ -1,0 +1,240 @@
+{#
+    SearchLite Frontend Module Template
+    - Vanilla JS AJAX search against /search-lite/search?query=
+    - Categories sidebar with filtering
+    - Result list limited to data-limit (passed from backend)
+#}
+
+{% set resultLimit = limit|default(10) %}
+
+<style>
+/* Container layout */
+.sl-search-wrapper {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+}
+
+/* Sidebar */
+.sl-categories {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0.5rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.sl-categories h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+.sl-category-item {
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+}
+.sl-category-item.active,
+.sl-category-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Main column */
+.sl-main {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Search bar */
+.sl-search-bar {
+    position: relative;
+    margin-bottom: 1rem;
+}
+.sl-search-input {
+    width: 100%;
+    padding: 0.6rem 2.5rem 0.6rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+.sl-search-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: #888;
+}
+
+/* Result list */
+.sl-results-count {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+.sl-result-item {
+    border-bottom: 1px solid #eee;
+    padding: 0.75rem 0;
+}
+.sl-result-title {
+    font-size: 1.1rem;
+    margin: 0 0 0.25rem 0;
+    color: #1a0dab;
+}
+.sl-result-title a {
+    text-decoration: none;
+    color: inherit;
+}
+.sl-result-title a:hover {
+    text-decoration: underline;
+}
+.sl-result-snippet {
+    font-size: 0.95rem;
+}
+.sl-no-results {
+    font-style: italic;
+    color: #666;
+}
+</style>
+
+<div class="sl-search-wrapper" data-limit="{{ resultLimit }}">
+    <div class="sl-categories">
+        <h3>Kategorien</h3>
+        <div id="sl-category-list">
+            <!-- categories injected here -->
+        </div>
+    </div>
+
+    <div class="sl-main">
+        <div class="sl-search-bar">
+            <input type="text" id="sl-search-input" class="sl-search-input" placeholder="Suche…" />
+            <span class="sl-search-icon">🔍</span>
+        </div>
+        <div class="sl-results-count" id="sl-results-count"></div>
+        <div id="sl-results-container"></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const wrapper = document.querySelector('.sl-search-wrapper');
+    if (!wrapper) return;
+
+    const limit = parseInt(wrapper.dataset.limit, 10) || 10;
+    const inputEl = document.getElementById('sl-search-input');
+    const resultsContainer = document.getElementById('sl-results-container');
+    const resultsCountEl = document.getElementById('sl-results-count');
+    const categoryListEl = document.getElementById('sl-category-list');
+
+    let currentResults = [];
+    let activeCategory = 'all';
+
+    function buildCategoryIndex(results) {
+        const categoryMap = {};
+        results.forEach(r => {
+            if (!Array.isArray(r.categories)) return;
+            r.categories.forEach(cat => {
+                categoryMap[cat] = (categoryMap[cat] || 0) + 1;
+            });
+        });
+        return categoryMap;
+    }
+
+    function renderCategories(categoryMap) {
+        const entries = Object.entries(categoryMap);
+        if (entries.length === 0) {
+            categoryListEl.innerHTML = '<div class="sl-no-results">Keine Kategorien</div>';
+            return;
+        }
+        categoryListEl.innerHTML = '<div class="sl-category-item' + (activeCategory === 'all' ? ' active' : '') + '" data-category="all">Alle ('+currentResults.length+')</div>';
+        entries.sort((a,b) => a[0].localeCompare(b[0]));
+        entries.forEach(([cat, count]) => {
+            const div = document.createElement('div');
+            div.className = 'sl-category-item' + (activeCategory === cat ? ' active' : '');
+            div.dataset.category = cat;
+            div.textContent = cat + ' (' + count + ')';
+            categoryListEl.appendChild(div);
+        });
+    }
+
+    function renderResults() {
+        let filtered = currentResults;
+        if (activeCategory !== 'all') {
+            filtered = currentResults.filter(r => Array.isArray(r.categories) && r.categories.includes(activeCategory));
+        }
+        resultsCountEl.textContent = filtered.length + ' Treffer';
+        if (filtered.length === 0) {
+            resultsContainer.innerHTML = '<div class="sl-no-results">Keine Ergebnisse</div>';
+            return;
+        }
+        resultsContainer.innerHTML = '';
+        filtered.slice(0, limit).forEach(r => {
+            const div = document.createElement('div');
+            div.className = 'sl-result-item';
+            div.innerHTML =
+                '<h4 class="sl-result-title"><a href="' + r.url + '" target="_blank" rel="noopener">' + r.title + '</a></h4>' +
+                '<div class="sl-result-snippet">' + r.content_snippet + '</div>';
+            resultsContainer.appendChild(div);
+        });
+    }
+
+    function handleCategoryClick(e) {
+        const target = e.target.closest('.sl-category-item');
+        if (!target) return;
+        activeCategory = target.dataset.category;
+        document.querySelectorAll('.sl-category-item').forEach(el => el.classList.remove('active'));
+        target.classList.add('active');
+        renderResults();
+    }
+
+    function performSearch(query) {
+        if (!query) {
+            currentResults = [];
+            renderResults();
+            renderCategories({});
+            return;
+        }
+        fetch('/search-lite/search?query=' + encodeURIComponent(query))
+            .then(resp => resp.json())
+            .then(data => {
+                currentResults = Array.isArray(data.results) ? data.results : [];
+                activeCategory = 'all';
+                renderResults();
+                const catMap = buildCategoryIndex(currentResults);
+                renderCategories(catMap);
+            })
+            .catch(err => {
+                console.error('Search error', err);
+            });
+    }
+
+    // Input handlers mit Debounce (300 ms)
+    function debounce(fn, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    const handleInput = debounce(() => {
+        performSearch(inputEl.value.trim());
+    }, 300);
+
+    inputEl.addEventListener('input', handleInput);
+    // Enter Key again
+    inputEl.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Enter') {
+            ev.preventDefault();
+            performSearch(inputEl.value.trim());
+        }
+    });
+    document.querySelector('.sl-search-icon').addEventListener('click', function() {
+        performSearch(inputEl.value.trim());
+    });
+
+    // Category click handler
+    categoryListEl.addEventListener('click', handleCategoryClick);
+})();
+</script>

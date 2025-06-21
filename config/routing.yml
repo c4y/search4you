@@ -1,0 +1,3 @@
+api:
+    resource: "@ContaoSearchLiteBundle/src/Controller"
+    type: annotation

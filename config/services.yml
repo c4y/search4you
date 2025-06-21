@@ -1,0 +1,15 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    C4Y\SearchLiteBundle\Controller\:
+        public: true
+        resource: ../src/Controller
+        tags: ['controller.service_arguments']
+
+    C4Y\SearchLiteBundle\EventListener\:
+        public: true
+        resource: ../src/EventListener
+        tags: ['controller.service_arguments']
