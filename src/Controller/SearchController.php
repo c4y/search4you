@@ -61,17 +61,9 @@ class SearchController extends AbstractController
         $config = Configuration::create()
             ->withPrimaryKey('id')
             ->withSearchableAttributes(['title', 'content'])
-            ->withFilterableAttributes(['tags'])
-            ->withSortableAttributes(['title']);
-
-        static $engine = null;
-        if ($engine instanceof Loupe) {
-            return $engine;
-        }
-
-        $engine = (new LoupeFactory())->create($this->cacheDir, $config);
+            ->withFilterableAttributes(['tags']);
         
-        return $engine;
+        return (new LoupeFactory())->create($this->cacheDir, $config);
     }
     
     /**
@@ -133,13 +125,15 @@ class SearchController extends AbstractController
     public function __invoke(Request $request): JsonResponse
     {
         $query = $request->query->get('query', '');
+        $tagsFilter = trim($request->query->get('tags', ''));
         
-        // Wenn kein Query Parameter vorhanden ist, leere Ergebnisse zurückgeben
-        if (empty($query)) {
+        // Wenn weder Query noch Tag vorhanden ist, leere Ergebnisse zurückgeben
+        if (empty($query) && empty($tagsFilter)) {
             return new JsonResponse([
-                'query' => '',
+                'query' => $query,
                 'results' => [],
-                'total_hits' => 0
+                'total_hits' => 0,
+                'tags' => []
             ]);
         }
         
@@ -152,11 +146,18 @@ class SearchController extends AbstractController
                 ->withQuery($query)
                 ->withAttributesToHighlight(['title', 'content'], '<em>', '</em>');
                 
+            // Tag-Filter anwenden, falls vorhanden
+            if (!empty($tagsFilter)) {
+                $searchParams = $searchParams->withFilter("tags = '" . $tagsFilter . "'");
+            }
+                
             $searchResult = $engine->search($searchParams);
             $resultArray = $searchResult->toArray();
             
-            // Für alle Treffer das Ergebnis aufbereiten
+            // Für alle Treffer das Ergebnis aufbereiten und Tags sammeln
             $formattedResults = [];
+            $allTags = [];
+            
             foreach ($resultArray['hits'] as $hit) {
                 // Title mit Highlight extrahieren
                 $title = isset($hit['_formatted']['title']) ? $hit['_formatted']['title'] : ($hit['title'] ?? 'Kein Titel');
@@ -169,20 +170,35 @@ class SearchController extends AbstractController
                 // Ensure we have a valid score
                 $score = isset($hit['_score']) ? (float)$hit['_score'] : 1.0;
                 
+                // Tags aus dem Hit extrahieren, falls vorhanden
+                $tags = $hit['tags'] ?? [];
+                if (!empty($tags)) {
+                    if (is_string($tags)) {
+                        $tags = array_map('trim', explode(',', $tags));
+                    }
+                    $allTags = array_merge($allTags, $tags);
+                }
+                
                 $formattedResults[] = [
                     'id' => $hit['id'],
                     'url' => $hit['url'] ?? '',
                     'title' => $title,
                     'content_snippet' => $combinedSnippet,
-                    'score' => $score
+                    'score' => $score,
+                    'tags' => is_array($tags) ? $tags : []
                 ];
             }
+            
+            // Doppelte Tags entfernen und leere Einträge filtern
+            $uniqueTags = array_values(array_unique(array_filter(array_map('trim', $allTags))));
             
             // JSON-Antwort zurückgeben
             return new JsonResponse([
                 'query' => $query,
+                'filter_tags' => $tagsFilter ?: null,
                 'results' => $formattedResults, 
-                'total_hits' => $resultArray['totalHits'] ?? 0
+                'total_hits' => $resultArray['totalHits'] ?? 0,
+                'tags' => $uniqueTags
             ]);
         } catch (\Exception $e) {
             // Bei Fehler entsprechende JSON-Fehlermeldung zurückgeben

@@ -49,8 +49,7 @@ class IndexPageListener
         $config = Configuration::create()
             ->withPrimaryKey('id')
             ->withSearchableAttributes(['title', 'content'])
-            ->withFilterableAttributes(['title'])
-            ->withSortableAttributes(['title']);
+            ->withFilterableAttributes(['tags']);
 
         return (new LoupeFactory())->create($this->cacheDir, $config);
     }
@@ -62,6 +61,7 @@ class IndexPageListener
 
         $criteria = $this->tagsManager->createTagCriteria()->setSourceIds([$indexData['pid']]);
         $tags = $this->tagsManager->getTagFinder()->findMultiple($criteria);
+        
         $tagNames = array_map(function ($tag) {
             return $tag->getName();
         }, $tags);
@@ -73,13 +73,9 @@ class IndexPageListener
             'tags' => $tagNames,
             'content' => $this->cleanHtml($content)
         ];
-
-        file_put_contents($this->cacheDir . '/index.log', sprintf('Indexing document: %s (%s)', $document['id'], $document['title']) . "\n", FILE_APPEND);
         
         // Dokument neu hinzufügen (Upsert)
         $engine->addDocument($document);
-        
-        file_put_contents($this->cacheDir . '/index.log', sprintf('Document indexed. Total documents: %d', $engine->countDocuments()) . "\n", FILE_APPEND);
 
         return true;
     }

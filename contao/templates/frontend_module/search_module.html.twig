@@ -22,14 +22,23 @@
 .sl-categories {
     border: 1px solid #ddd;
     border-radius: 4px;
-    padding: 0.5rem;
-    max-height: 70vh;
+    padding: 1rem;
+    max-height: 80vh;
     overflow-y: auto;
 }
+
 .sl-categories h3 {
-    margin: 0 0 0.5rem 0;
+    margin: 1rem 0 0.75rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
     font-size: 1rem;
+    color: #333;
 }
+
+.sl-categories h3:first-child {
+    margin-top: 0;
+}
+
 .sl-category-item {
     cursor: pointer;
     padding: 0.25rem 0.5rem;
@@ -38,6 +47,41 @@
 .sl-category-item.active,
 .sl-category-item:hover {
     background-color: #f0f0f0;
+}
+
+/* Active filters */
+.sl-active-filter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: #e9f5ff;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.sl-remove-filter {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    margin-left: 0.5rem;
+}
+
+.sl-remove-filter:hover {
+    color: #333;
+}
+
+/* Tag list */
+#sl-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
 }
 
 /* Main column */
@@ -73,6 +117,40 @@
     color: #666;
     margin-bottom: 0.5rem;
 }
+
+/* Tags */
+.sl-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.sl-tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #f0f0f0;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid #ddd;
+}
+
+.sl-tag:hover {
+    background-color: #e0e0e0;
+    text-decoration: none;
+}
+
+.sl-tag.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0069d9;
+}
+
+
 .sl-result-item {
     border-bottom: 1px solid #eee;
     padding: 0.75rem 0;
@@ -100,9 +178,13 @@
 
 <div class="sl-search-wrapper" data-limit="{{ resultLimit }}">
     <div class="sl-categories">
-        <h3>Kategorien</h3>
-        <div id="sl-category-list">
-            <!-- categories injected here -->
+        <h3>Filter</h3>
+        <div id="sl-active-filters">
+            <!-- Active filters will be shown here -->
+        </div>
+        <h3>Verfügbare Tags</h3>
+        <div id="sl-tag-list">
+            <!-- Available tags will be shown here -->
         </div>
     </div>
 
@@ -125,53 +207,93 @@
     const inputEl = document.getElementById('sl-search-input');
     const resultsContainer = document.getElementById('sl-results-container');
     const resultsCountEl = document.getElementById('sl-results-count');
-    const categoryListEl = document.getElementById('sl-category-list');
+    const tagListEl = document.getElementById('sl-tag-list');
+    const activeFiltersEl = document.getElementById('sl-active-filters');
 
     let currentResults = [];
-    let activeCategory = 'all';
+    let allTags = {}; // Store tags as {alias: name} pairs
+    let activeTagAlias = ''; // Store the active tag alias for filtering
+    let activeTagName = ''; // Store the active tag name for display
+    let currentQuery = '';
 
-    function buildCategoryIndex(results) {
-        const categoryMap = {};
-        results.forEach(r => {
-            if (!Array.isArray(r.categories)) return;
-            r.categories.forEach(cat => {
-                categoryMap[cat] = (categoryMap[cat] || 0) + 1;
-            });
-        });
-        return categoryMap;
+    function updateUrl() {
+        const params = new URLSearchParams();
+        if (currentQuery) params.set('query', currentQuery);
+        
+        if (activeTagAlias && activeTagAlias !== '0') {
+            params.set('tags', activeTagAlias);
+        }
+        
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.history.pushState({}, '', newUrl);
     }
 
-    function renderCategories(categoryMap) {
-        const entries = Object.entries(categoryMap);
-        if (entries.length === 0) {
-            categoryListEl.innerHTML = '<div class="sl-no-results">Keine Kategorien</div>';
+    function renderTags() {
+        // Clear and rebuild tag list
+        tagListEl.innerHTML = '';
+        
+        if (!allTags || Object.keys(allTags).length === 0) {
+            tagListEl.innerHTML = '<div class="sl-no-results">Keine Tags gefunden</div>';
             return;
         }
-        categoryListEl.innerHTML = '<div class="sl-category-item' + (activeCategory === 'all' ? ' active' : '') + '" data-category="all">Alle ('+currentResults.length+')</div>';
-        entries.sort((a,b) => a[0].localeCompare(b[0]));
-        entries.forEach(([cat, count]) => {
-            const div = document.createElement('div');
-            div.className = 'sl-category-item' + (activeCategory === cat ? ' active' : '');
-            div.dataset.category = cat;
-            div.textContent = cat + ' (' + count + ')';
-            categoryListEl.appendChild(div);
+        
+        // Convert to array of {alias, name} objects and sort by name
+        const sortedTags = Object.entries(allTags)
+            .filter(([alias]) => alias !== activeTagAlias) // Filter out active tag
+            .map(([alias, name]) => ({ alias, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        
+        if (sortedTags.length === 0) {
+            tagListEl.innerHTML = '<div class="sl-no-results">Keine weiteren Tags verfügbar</div>';
+            return;
+        }
+        
+        sortedTags.forEach(tag => {
+            const tagEl = document.createElement('div');
+            tagEl.className = 'sl-tag';
+            tagEl.textContent = tag.name;
+            
+            // Store the alias in a data attribute for reference
+            tagEl.dataset.tag = tag.alias;
+            
+            // Add click handler
+            tagEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleTagClick(tag.alias);
+            });
+            
+            tagListEl.appendChild(tagEl);
         });
+    }
+    
+    function renderActiveFilters() {
+        activeFiltersEl.innerHTML = '';
+        
+        if (activeTagAlias) {
+            const filterEl = document.createElement('div');
+            filterEl.className = 'sl-active-filter';
+            filterEl.innerHTML = `
+                <span>${activeTagName || activeTagAlias}</span>
+                <button class="sl-remove-filter" data-tag="${activeTagAlias}">&times;</button>
+            `;
+            activeFiltersEl.appendChild(filterEl);
+        }
     }
 
     function renderResults() {
-        let filtered = currentResults;
-        if (activeCategory !== 'all') {
-            filtered = currentResults.filter(r => Array.isArray(r.categories) && r.categories.includes(activeCategory));
-        }
-        resultsCountEl.textContent = filtered.length + ' Treffer';
-        if (filtered.length === 0) {
+        resultsCountEl.textContent = currentResults.length + ' Treffer';
+        
+        if (currentResults.length === 0) {
             resultsContainer.innerHTML = '<div class="sl-no-results">Keine Ergebnisse</div>';
             return;
         }
+        
         resultsContainer.innerHTML = '';
-        filtered.slice(0, limit).forEach(r => {
+        currentResults.slice(0, limit).forEach(r => {
             const div = document.createElement('div');
             div.className = 'sl-result-item';
+            
             div.innerHTML =
                 '<h4 class="sl-result-title"><a href="' + r.url + '" target="_blank" rel="noopener">' + r.title + '</a></h4>' +
                 '<div class="sl-result-snippet">' + r.content_snippet + '</div>';
@@ -179,30 +301,137 @@
         });
     }
 
-    function handleCategoryClick(e) {
-        const target = e.target.closest('.sl-category-item');
-        if (!target) return;
-        activeCategory = target.dataset.category;
-        document.querySelectorAll('.sl-category-item').forEach(el => el.classList.remove('active'));
-        target.classList.add('active');
-        renderResults();
+    function handleTagClick(tagAlias) {
+        if (tagAlias === undefined || tagAlias === null) {
+            return;
+        }
+        
+        // Convert to string and trim any whitespace
+        const newTagAlias = String(tagAlias).trim();
+        
+        if (activeTagAlias === newTagAlias) {
+            // Clicked on active tag - remove filter
+            activeTagAlias = '';
+            activeTagName = '';
+        } else {
+            // Clicked on different tag - set as filter
+            activeTagAlias = newTagAlias;
+            activeTagName = allTags[newTagAlias] || newTagAlias;
+        }
+        
+        updateUrl();
+        performSearch(currentQuery);
+    }
+    
+    function handleRemoveFilter(e) {
+        if (e.target.classList.contains('sl-remove-filter')) {
+            e.preventDefault();
+            e.stopPropagation();
+            activeTagAlias = '';
+            activeTagName = '';
+            updateUrl();
+            performSearch(currentQuery);
+        }
+    }
+
+    // Initialize from URL
+    function initFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        currentQuery = urlParams.get('query') || '';
+        activeTagAlias = urlParams.get('tags') || '';
+        
+        inputEl.value = currentQuery;
+        if (currentQuery || activeTagAlias) {
+            performSearch(currentQuery);
+        }
+    }
+    
+    // Handle popstate (back/forward navigation)
+    window.addEventListener('popstate', initFromUrl);
+    
+    // Handle remove filter button clicks
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.sl-remove-filter')) {
+            handleRemoveFilter(e);
+        }
+    });
+    
+    // Initialize
+    initFromUrl();
+
+    function getCurrentTag() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('tag') || '';
+    }
+
+    function processTags(tagsData) {
+        // Handle different tag data formats:
+        // 1. Array of strings: ['tag1', 'tag2']
+        // 2. Object with aliases as keys: {alias1: 'name1', alias2: 'name2'}
+        // 3. Array of objects: [{alias: 'a1', name: 'n1'}, {alias: 'a2', name: 'n2'}]
+        
+        if (Array.isArray(tagsData)) {
+            // If it's an array of strings
+            if (typeof tagsData[0] === 'string') {
+                const result = {};
+                tagsData.forEach(tag => {
+                    result[tag] = tag; // Use the tag as both key and value
+                });
+                return result;
+            }
+            // If it's an array of objects
+            if (typeof tagsData[0] === 'object') {
+                const result = {};
+                tagsData.forEach(tag => {
+                    if (tag.alias && tag.name) {
+                        result[tag.alias] = tag.name;
+                    } else if (tag.id || tag.name) {
+                        // Fallback for different object structures
+                        const alias = tag.alias || tag.id || tag.name;
+                        result[alias] = tag.name || alias;
+                    }
+                });
+                return result;
+            }
+        } else if (typeof tagsData === 'object' && tagsData !== null) {
+            // It's already in the correct format
+            return {...tagsData};
+        }
+        return {};
     }
 
     function performSearch(query) {
-        if (!query) {
+        currentQuery = query || '';
+        
+        if (!query && !activeTagAlias) {
             currentResults = [];
+            allTags = {};
             renderResults();
-            renderCategories({});
+            renderTags();
+            renderActiveFilters();
             return;
         }
-        fetch('/search-lite/search?query=' + encodeURIComponent(query))
+        
+        let url = '/search-lite/search?query=' + encodeURIComponent(query || '');
+        if (activeTagAlias) {
+            url += '&tags=' + encodeURIComponent(activeTagAlias);
+        }
+        
+        fetch(url)
             .then(resp => resp.json())
             .then(data => {
                 currentResults = Array.isArray(data.results) ? data.results : [];
-                activeCategory = 'all';
+                
+                // Process tags from the API response
+                allTags = processTags(data.tags || []);
+                
+                // If we have an active tag alias but not the name, try to get it from the response
+                if (activeTagAlias && !activeTagName) {
+                    activeTagName = allTags[activeTagAlias] || activeTagAlias;
+                }
                 renderResults();
-                const catMap = buildCategoryIndex(currentResults);
-                renderCategories(catMap);
+                renderTags();
+                renderActiveFilters();
             })
             .catch(err => {
                 console.error('Search error', err);
@@ -219,22 +448,25 @@
     }
 
     const handleInput = debounce(() => {
+        updateUrl();
         performSearch(inputEl.value.trim());
     }, 300);
 
     inputEl.addEventListener('input', handleInput);
-    // Enter Key again
+    
+    // Enter Key handler
     inputEl.addEventListener('keydown', function(ev) {
         if (ev.key === 'Enter') {
             ev.preventDefault();
+            updateUrl();
             performSearch(inputEl.value.trim());
         }
     });
+    
+    // Search icon click handler
     document.querySelector('.sl-search-icon').addEventListener('click', function() {
+        updateUrl();
         performSearch(inputEl.value.trim());
     });
-
-    // Category click handler
-    categoryListEl.addEventListener('click', handleCategoryClick);
 })();
 </script>
