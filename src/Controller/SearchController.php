@@ -60,8 +60,8 @@ class SearchController extends AbstractController
     {
         $config = Configuration::create()
             ->withPrimaryKey('id')
-            ->withSearchableAttributes(['title', 'content'])
-            ->withLanguages(['de', 'fr'])
+            ->withSearchableAttributes(['title', 'search']) // Verwende das bereinigte Content-Feld für die Suche
+            ->withLanguages(['de', 'en'])
             ->withFilterableAttributes(['tags']);
         
         return (new LoupeFactory())->create($this->cacheDir, $config);
@@ -160,9 +160,10 @@ class SearchController extends AbstractController
             $engine = $this->getLoupeEngine();
             
             // Suche mit Hervorhebung konfigurieren
+            // Verwende search für die Suche, aber content für die Anzeige
             $searchParams = SearchParameters::create()
                 ->withQuery($query)
-                ->withAttributesToHighlight(['title', 'content'], '<em>', '</em>');
+                ->withAttributesToHighlight(['title', 'search'], '<em>', '</em>');
                 
             // Tag-Filter anwenden, falls vorhanden
             if (!empty($tagsFilter)) {
@@ -181,9 +182,36 @@ class SearchController extends AbstractController
                 $title = isset($hit['_formatted']['title']) ? $hit['_formatted']['title'] : ($hit['title'] ?? 'Kein Titel');
                 
                 // Content mit Highlight und Kontext
-                $contentHighlights = isset($hit['_formatted']['content']) ? $hit['_formatted']['content'] : '';
+                // Verwende den ursprünglichen Inhalt für die Anzeige, aber die bereinigte Version für die Suche
+                $contentForSnippet = $hit['content'] ?? '';
+                $contentHighlights = isset($hit['_formatted']['search']) ? $hit['_formatted']['search'] : '';
+                
+                // Extrahiere den Kontext aus dem bereinigten Inhalt, aber zeige den ursprünglichen Inhalt an
                 $contexts = $this->extractContexts($contentHighlights);
-                $combinedSnippet = implode('...', $contexts);
+                $combinedSnippet = '';
+                
+                // Ersetze die hervorgehobenen Begriffe im ursprünglichen Text
+                if (!empty($contentHighlights)) {
+                    $highlightedTerms = [];
+                    preg_match_all('/<em>(.*?)<\/em>/', $contentHighlights, $matches);
+                    if (!empty($matches[1])) {
+                        $highlightedTerms = array_unique($matches[1]);
+                    }
+                    
+                    // Markiere die Begriffe im ursprünglichen Text
+                    $contentForDisplay = $contentForSnippet;
+                    foreach ($highlightedTerms as $term) {
+                        $contentForDisplay = preg_replace(
+                            '/(' . preg_quote($term, '/') . ')/iu',
+                            '<em>$1</em>',
+                            $contentForDisplay
+                        );
+                    }
+                    
+                    // Extrahiere die Kontexte mit den markierten Begriffen
+                    $contexts = $this->extractContexts($contentForDisplay);
+                    $combinedSnippet = implode('...', $contexts);
+                }
                 
                 // Ensure we have a valid score
                 $score = isset($hit['_score']) ? (float)$hit['_score'] : 1.0;

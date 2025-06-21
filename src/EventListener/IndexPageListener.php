@@ -67,12 +67,14 @@ class IndexPageListener
             return $tag->getName();
         }, $tags);
 
+        $cleanContent = $this->cleanHtml($content);
         $document = [
             'id' => $indexData['pid'],
             'url' => $indexData['url'],
             'title' => $indexData['title'],
             'tags' => $tagNames,
-            'content' => $this->cleanHtml($content)
+            'content' => $cleanContent,
+            'search' => $this->removeStopwords($cleanContent)
         ];
         
         // Dokument neu hinzufügen (Upsert)
@@ -81,10 +83,37 @@ class IndexPageListener
         return true;
     }
 
+    private function removeStopwords(string $text): string
+    {
+        static $stopwords = null;
+        
+        if ($stopwords === null) {
+            $stopwordsFile = __DIR__.'/../../stopwords/stopwords-de.json';
+            if (file_exists($stopwordsFile)) {
+                $stopwords = json_decode(file_get_contents($stopwordsFile), true) ?: [];
+            } else {
+                $stopwords = [];
+            }
+        }
+        
+        if (empty($stopwords)) {
+            return $text;
+        }
+        
+        // Erstelle ein Muster für alle Stoppwörter
+        $pattern = '/\b(' . implode('|', array_map('preg_quote', $stopwords)) . ')\b/iu';
+        
+        // Ersetze Stoppwörter durch Leerzeichen und normalisiere Leerzeichen
+        $text = preg_replace($pattern, ' ', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+        
+        return trim($text);
+    }
+    
     private function cleanHtml(string $html): string
     {
         // Ersetze Bilder durch ihre Alt-Texte, falls vorhanden
-        $html = preg_replace('/<img\b[^>]*alt=["\']([^"\']*)["\'](.*?)>/i', '[Bild: $1]', $html);
+        $html = preg_replace('/<img\b[^>]*alt=[\'"]([^\'"]*)[\'"](.*?)>/i', '[Bild: $1]', $html);
         // Entferne Bilder ohne Alt-Text
         $html = preg_replace('/<img\b[^>]*>/i', '[Bild]', $html);
 
