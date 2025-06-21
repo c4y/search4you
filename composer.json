@@ -12,8 +12,9 @@
         }
     ],
     "require": {
-        "php": "^7.4 || ^8.0",
-        "contao/core-bundle": "^5.3"
+        "php": "^8.0",
+        "contao/core-bundle": "^5.3",
+        "codefog/tags-bundle": "^3.3"
     },
     "conflict": {
         "contao/manager-plugin": "<2.0 || >=3.0"
