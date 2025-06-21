@@ -11,6 +11,7 @@ use Symfony\Component\Config\Loader\LoaderResolverInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Contao\ManagerPlugin\Config\ExtensionPluginInterface;
 use Contao\ManagerPlugin\Config\ContainerBuilder;
+use Codefog\TagsBundle\CodefogTagsBundle;
 
 class Plugin implements BundlePluginInterface, RoutingPluginInterface, ExtensionPluginInterface
 {
@@ -21,7 +22,7 @@ class Plugin implements BundlePluginInterface, RoutingPluginInterface, Extension
         return [
             BundleConfig::create(ContaoSearchLiteBundle::class)
                 ->setLoadAfter(
-                    [ContaoCoreBundle::class]
+                    [ContaoCoreBundle::class, CodefogTagsBundle::class]
                 )
         ];
     }
