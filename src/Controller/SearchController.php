@@ -181,37 +181,12 @@ class SearchController extends AbstractController
                 // Title mit Highlight extrahieren
                 $title = isset($hit['_formatted']['title']) ? $hit['_formatted']['title'] : ($hit['title'] ?? 'Kein Titel');
                 
-                // Content mit Highlight und Kontext
-                // Verwende den ursprünglichen Inhalt für die Anzeige, aber die bereinigte Version für die Suche
-                $contentForSnippet = $hit['content'] ?? '';
+                // Verwende die bereits von Loupe hervorgehobenen Inhalte
                 $contentHighlights = isset($hit['_formatted']['search']) ? $hit['_formatted']['search'] : '';
                 
-                // Extrahiere den Kontext aus dem bereinigten Inhalt, aber zeige den ursprünglichen Inhalt an
+                // Extrahiere den Kontext aus dem hervorgehobenen Inhalt
                 $contexts = $this->extractContexts($contentHighlights);
-                $combinedSnippet = '';
-                
-                // Ersetze die hervorgehobenen Begriffe im ursprünglichen Text
-                if (!empty($contentHighlights)) {
-                    $highlightedTerms = [];
-                    preg_match_all('/<em>(.*?)<\/em>/', $contentHighlights, $matches);
-                    if (!empty($matches[1])) {
-                        $highlightedTerms = array_unique($matches[1]);
-                    }
-                    
-                    // Markiere die Begriffe im ursprünglichen Text
-                    $contentForDisplay = $contentForSnippet;
-                    foreach ($highlightedTerms as $term) {
-                        $contentForDisplay = preg_replace(
-                            '/(' . preg_quote($term, '/') . ')/iu',
-                            '<em>$1</em>',
-                            $contentForDisplay
-                        );
-                    }
-                    
-                    // Extrahiere die Kontexte mit den markierten Begriffen
-                    $contexts = $this->extractContexts($contentForDisplay);
-                    $combinedSnippet = implode('...', $contexts);
-                }
+                $combinedSnippet = implode('...', $contexts);
                 
                 // Ensure we have a valid score
                 $score = isset($hit['_score']) ? (float)$hit['_score'] : 1.0;
