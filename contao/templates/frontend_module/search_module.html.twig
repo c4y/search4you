@@ -11,11 +11,48 @@
 /* Container layout */
 .sl-search-wrapper {
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
     max-width: 1200px;
     margin: 0 auto;
     font-family: Arial, sans-serif;
+}
+
+.sl-filter-toggle {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 3px;
+    background-color: #f0f0f0;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.sl-filter-toggle:hover {
+    background-color: #e0e0e0;
+}
+
+.sl-categories {
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    overflow: hidden;
+}
+
+.sl-categories.hidden {
+    max-height: 0 !important;
+    opacity: 0;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+@media screen and (min-width: 600px) {
+    .sl-search-wrapper {
+        grid-template-columns: 250px 1fr;
+    }
+
+    .sl-filter-toggle {
+        display: none;
+    }
 }
 
 /* Sidebar */
@@ -24,7 +61,16 @@
     border-radius: 4px;
     padding: 1rem;
     max-height: 80vh;
-    overflow-y: auto;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out, border 0.3s ease-in-out;
+}
+
+.sl-categories.hidden {
+    max-height: 0 !important;
+    opacity: 0;
+    padding: 0 1rem;
+    border: none;
+    margin: 0;
 }
 
 .sl-categories h3 {
@@ -61,6 +107,10 @@
     font-size: 0.9rem;
 }
 
+#sl-active-filters {
+    margin-top: 1rem;
+}
+
 .sl-remove-filter {
     background: none;
     border: none;
@@ -74,6 +124,14 @@
 
 .sl-remove-filter:hover {
     color: #333;
+}
+
+.sl-active-category .sl-remove-filter {
+    color: white;
+}
+
+.sl-active-category .sl-remove-filter:hover {
+    border-color: white;
 }
 
 /* Tag list */
@@ -130,7 +188,6 @@
     display: inline-block;
     padding: 0.25rem 0.75rem;
     background-color: #f0f0f0;
-    border-radius: 15px;
     font-size: 0.85rem;
     color: #333;
     text-decoration: none;
@@ -148,6 +205,12 @@
     background-color: #007bff;
     color: white;
     border-color: #0069d9;
+    display: flex;
+    justify-content: space-between;   
+}
+
+#sl-tag-list .sl-tag {
+    border-radius: 15px;
 }
 
 
@@ -179,12 +242,18 @@
 }
 </style>
 
+<div class="sl-filter-toggle">Filter (ein-/ausblenden)</div>
 <div class="sl-search-wrapper" data-limit="{{ resultLimit }}">
     <div class="sl-categories">
-        <h3>Filter</h3>
+        <h3>Kategorien</h3>
+        <div id="sl-category-list">
+            <!-- Available categories will be shown here -->
+        </div>
+        
         <div id="sl-active-filters">
             <!-- Active filters will be shown here -->
         </div>
+        
         <h3>Verfügbare Tags</h3>
         <div id="sl-tag-list">
             <!-- Available tags will be shown here -->
@@ -211,12 +280,15 @@
     const resultsContainer = document.getElementById('sl-results-container');
     const resultsCountEl = document.getElementById('sl-results-count');
     const tagListEl = document.getElementById('sl-tag-list');
+    const categoryListEl = document.getElementById('sl-category-list');
     const activeFiltersEl = document.getElementById('sl-active-filters');
 
     let currentResults = [];
     let allTags = {}; // Store tags as {alias: name} pairs
+    let allCategories = []; // Store all available categories
     let activeTagAlias = ''; // Store the active tag alias for filtering
     let activeTagName = ''; // Store the active tag name for display
+    let activeCategory = ''; // Store the active category for filtering
     let currentQuery = '';
 
     function updateUrl() {
@@ -227,10 +299,72 @@
             params.set('tags', activeTagAlias);
         }
         
+        if (activeCategory) {
+            params.set('category', activeCategory);
+        }
+        
         const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
         window.history.pushState({}, '', newUrl);
     }
 
+    function renderCategories() {
+        // Clear and rebuild category list
+        categoryListEl.innerHTML = '';
+        
+        if (!allCategories || allCategories.length === 0) {
+            categoryListEl.innerHTML = '<div class="sl-no-results">Keine Kategorien gefunden</div>';
+            return;
+        }
+        
+        // If there's an active category, show only that with remove button
+        if (activeCategory) {
+            const categoryContainer = document.createElement('div');
+            categoryContainer.className = 'sl-active-category';
+            
+            const categoryEl = document.createElement('span');
+            categoryEl.className = 'sl-tag active';
+            categoryEl.textContent = activeCategory;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'sl-remove-filter';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCategoryClick('');
+            });
+            
+            categoryEl.appendChild(removeBtn);
+            categoryContainer.appendChild(categoryEl);
+            categoryListEl.appendChild(categoryContainer);
+            return;
+        }
+        
+        // Show all available categories if none is selected
+        const filteredCategories = [...new Set(allCategories)]
+            .filter(cat => cat && cat.trim() !== '')
+            .sort((a, b) => a.localeCompare(b));
+            
+        if (filteredCategories.length === 0) {
+            categoryListEl.innerHTML = '<div class="sl-no-results">Keine Kategorien verfügbar</div>';
+            return;
+        }
+        
+        filteredCategories.forEach(category => {
+            const categoryEl = document.createElement('div');
+            categoryEl.className = 'sl-tag';
+            categoryEl.textContent = category;
+            
+            categoryEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCategoryClick(category);
+            });
+            
+            categoryListEl.appendChild(categoryEl);
+        });
+    }
+    
     function renderTags() {
         // Clear and rebuild tag list
         tagListEl.innerHTML = '';
@@ -273,14 +407,22 @@
     function renderActiveFilters() {
         activeFiltersEl.innerHTML = '';
         
+        // Only show active tag in the filters section
         if (activeTagAlias) {
             const filterEl = document.createElement('div');
             filterEl.className = 'sl-active-filter';
             filterEl.innerHTML = `
                 <span>${activeTagName || activeTagAlias}</span>
-                <button class="sl-remove-filter" data-tag="${activeTagAlias}">&times;</button>
+                <button class="sl-remove-filter" data-filter-type="tag">&times;</button>
             `;
             activeFiltersEl.appendChild(filterEl);
+            
+            // Add a heading if there are any active filters
+            if (activeFiltersEl.children.length > 0) {
+                const heading = document.createElement('h3');
+                heading.textContent = 'Filter';
+                activeFiltersEl.insertBefore(heading, activeFiltersEl.firstChild);
+            }
         }
     }
 
@@ -308,6 +450,19 @@
         });
     }
 
+    function handleCategoryClick(category) {
+        if (activeCategory === category) {
+            // Clicked on active category - remove filter
+            activeCategory = '';
+        } else {
+            // Set new category filter
+            activeCategory = category;
+        }
+        
+        updateUrl();
+        performSearch(currentQuery);
+    }
+    
     function handleTagClick(tagAlias) {
         if (tagAlias === undefined || tagAlias === null) {
             return;
@@ -334,8 +489,16 @@
         if (e.target.classList.contains('sl-remove-filter')) {
             e.preventDefault();
             e.stopPropagation();
-            activeTagAlias = '';
-            activeTagName = '';
+            
+            const filterType = e.target.dataset.filterType;
+            
+            if (filterType === 'tag') {
+                activeTagAlias = '';
+                activeTagName = '';
+            } else if (filterType === 'category') {
+                activeCategory = '';
+            }
+            
             updateUrl();
             performSearch(currentQuery);
         }
@@ -346,9 +509,10 @@
         const urlParams = new URLSearchParams(window.location.search);
         currentQuery = urlParams.get('query') || '';
         activeTagAlias = urlParams.get('tags') || '';
+        activeCategory = urlParams.get('category') || '';
         
         inputEl.value = currentQuery;
-        if (currentQuery || activeTagAlias) {
+        if (currentQuery || activeTagAlias || activeCategory) {
             performSearch(currentQuery);
         }
     }
@@ -363,6 +527,54 @@
         }
     });
     
+    // Initialize filter toggle
+    const filterToggle = document.querySelector('.sl-filter-toggle');
+    const categoriesSection = document.querySelector('.sl-categories');
+    
+    // Set initial state
+    if (window.innerWidth < 600) {
+        categoriesSection.classList.add('hidden');
+    } else {
+        categoriesSection.classList.remove('hidden');
+    }
+    
+    // Toggle filter visibility
+    filterToggle.addEventListener('click', () => {
+        categoriesSection.classList.toggle('hidden');
+        
+        // Force reflow to ensure the transition works
+        void categoriesSection.offsetHeight;
+        
+        // Toggle max-height for smooth animation
+        if (categoriesSection.classList.contains('hidden')) {
+            categoriesSection.style.maxHeight = '0';
+        } else {
+            categoriesSection.style.maxHeight = '80vh';
+        }
+    });
+    
+    // Update on window resize
+    function updateCategoriesVisibility() {
+        if (window.innerWidth >= 600) {
+            categoriesSection.classList.remove('hidden');
+            categoriesSection.style.maxHeight = '80vh';
+        } else if (!categoriesSection.classList.contains('hidden')) {
+            categoriesSection.style.maxHeight = '80vh';
+        } else {
+            categoriesSection.style.maxHeight = '0';
+        }
+    }
+    
+    // Initial update
+    updateCategoriesVisibility();
+    
+    // Update on resize with debounce
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateCategoriesVisibility, 100);
+    });
+
     // Initialize
     initFromUrl();
 
@@ -418,10 +630,13 @@
         console.log('Showing loading state');
         resultsContainer.innerHTML = '<div class="sl-no-results">Suche läuft...</div>';
         
-        // Build URL with query and tag filter
+        // Build URL with query, tag filter, and category filter
         let url = '/search-lite/search?query=' + encodeURIComponent(query);
         if (activeTagAlias) {
             url += '&tags=' + encodeURIComponent(activeTagAlias);
+        }
+        if (activeCategory) {
+            url += '&category=' + encodeURIComponent(activeCategory);
         }
         
         // Start timing
@@ -438,9 +653,11 @@
                 currentResults = data.results || [];
                 console.log('Found', currentResults.length, 'results');
                 allTags = processTags(data.tags || []);
+                allCategories = data.categories || [];
                 
                 // Update UI with search duration
                 console.log('Rendering UI components');
+                renderCategories();
                 renderTags();
                 renderResults(duration);
                 renderActiveFilters();

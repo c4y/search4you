@@ -62,7 +62,7 @@ class SearchController extends AbstractController
             ->withPrimaryKey('id')
             ->withSearchableAttributes(['title', 'search']) // Verwende das bereinigte Content-Feld für die Suche
             ->withLanguages(['de', 'en'])
-            ->withFilterableAttributes(['tags']);
+            ->withFilterableAttributes(['tags', 'category']);
         
         return (new LoupeFactory())->create($this->cacheDir, $config);
     }
@@ -144,9 +144,10 @@ class SearchController extends AbstractController
     {
         $query = $request->query->get('query', '');
         $tagsFilter = trim($request->query->get('tags', ''));
+        $categoryFilter = trim($request->query->get('category', ''));
         
         // Wenn weder Query noch Tag vorhanden ist, leere Ergebnisse zurückgeben
-        if (empty($query) && empty($tagsFilter)) {
+        if (empty($query) && empty($tagsFilter) && empty($categoryFilter)) {
             return new JsonResponse([
                 'query' => $query,
                 'results' => [],
@@ -169,6 +170,11 @@ class SearchController extends AbstractController
             if (!empty($tagsFilter)) {
                 $searchParams = $searchParams->withFilter("tags = '" . $tagsFilter . "'");
             }
+
+            // Kategorie-Filter anwenden, falls vorhanden
+            if (!empty($categoryFilter)) {
+                $searchParams = $searchParams->withFilter("category = '" . $categoryFilter . "'");
+            }   
                 
             $searchResult = $engine->search($searchParams);
             $resultArray = $searchResult->toArray();
@@ -191,7 +197,7 @@ class SearchController extends AbstractController
                 // Ensure we have a valid score
                 $score = isset($hit['_score']) ? (float)$hit['_score'] : 1.0;
                 
-                // Tags aus dem Hit extrahieren, falls vorhanden
+                // Tags und Kategorien aus dem Hit extrahieren, falls vorhanden
                 $tags = $hit['tags'] ?? [];
                 if (!empty($tags)) {
                     if (is_string($tags)) {
@@ -200,18 +206,26 @@ class SearchController extends AbstractController
                     $allTags = array_merge($allTags, $tags);
                 }
                 
+                // Kategorie aus dem Hit extrahieren, falls vorhanden
+                $category = $hit['category'] ?? '';
+                if (!empty($category)) {
+                    $allCategories[] = $category;
+                }
+                
                 $formattedResults[] = [
                     'id' => $hit['id'],
                     'url' => $hit['url'] ?? '',
                     'title' => $title,
                     'content_snippet' => $combinedSnippet,
                     'score' => $score,
+                    'category' => $hit['category'] ?? '',
                     'tags' => is_array($tags) ? $tags : []
                 ];
             }
             
-            // Doppelte Tags entfernen und leere Einträge filtern
+            // Doppelte Tags und Kategorien entfernen und leere Einträge filtern
             $uniqueTags = array_values(array_unique(array_filter(array_map('trim', $allTags))));
+            $uniqueCategories = array_values(array_unique(array_filter(array_map('trim', $allCategories))));
             
             // JSON-Antwort vorbereiten und UTF-8 sicherstellen
             $responseData = [
@@ -219,7 +233,8 @@ class SearchController extends AbstractController
                 'filter_tags' => $tagsFilter ?: null,
                 'results' => $this->ensureUtf8($formattedResults), 
                 'total_hits' => $resultArray['totalHits'] ?? 0,
-                'tags' => $this->ensureUtf8($uniqueTags)
+                'tags' => $this->ensureUtf8($uniqueTags),
+                'categories' => $this->ensureUtf8($uniqueCategories)
             ];
             
             // JSON-Antwort mit korrekter Kodierung zurückgeben
