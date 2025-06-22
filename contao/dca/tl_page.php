@@ -2,19 +2,32 @@
 
 use Contao\CoreBundle\DataContainer\PaletteManipulator;
 
-$GLOBALS['TL_DCA']['tl_page']['fields']['tags'] = [
+$GLOBALS['TL_DCA']['tl_page']['fields']['search_category'] = [
     'exclude' => true,
     'inputType' => 'cfgTags',
     'eval' => [
-        'tagsManager' => 'search_lite_manager', 
+        'tagsManager' => 'search_lite_category_manager', 
+        'tagsCreate' => true, 
+        'maxItems' => 1,
+        'hideList' => true,
+        'tl_class' => 'clr w50'
+    ],
+];
+
+$GLOBALS['TL_DCA']['tl_page']['fields']['search_tags'] = [
+    'exclude' => true,
+    'inputType' => 'cfgTags',
+    'eval' => [
+        'tagsManager' => 'search_lite_tags_manager', 
         'tagsCreate' => true, 
         'maxItems' => 5, 
         'hideList' => true,
-        'tl_class' => 'clr'
+        'tl_class' => 'w50'
     ],
 ];
 
 PaletteManipulator::create()
-    ->addField('tags', 'type', PaletteManipulator::POSITION_AFTER)
+    ->addField('search_category', 'type', PaletteManipulator::POSITION_AFTER)
+    ->addField('search_tags', 'search_category', PaletteManipulator::POSITION_AFTER)
     ->applyToPalette('regular', 'tl_page') 
 ;

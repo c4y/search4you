@@ -39,9 +39,15 @@ class Plugin implements BundlePluginInterface, RoutingPluginInterface, Extension
 
     public function getExtensionConfig($extensionName, array $extensionConfigs, ContainerBuilder $container)
     {
-        if ('codefog_tags' === $extensionName && !isset($extensionConfigs[0]['managers']['terminal42_node'])) {
-            $extensionConfigs[0]['managers']['search_lite_manager'] = [
-                'source' => 'tl_page.tags',
+        if ('codefog_tags' === $extensionName && !isset($extensionConfigs[0]['managers']['search_lite_tags_manager'])) {
+            $extensionConfigs[0]['managers']['search_lite_tags_manager'] = [
+                'source' => 'tl_page.search_tags',
+            ];
+        }
+
+        if ('codefog_tags' === $extensionName && !isset($extensionConfigs[0]['managers']['search_lite_category_manager'])) {
+            $extensionConfigs[0]['managers']['search_lite_category_manager'] = [
+                'source' => 'tl_page.search_category',
             ];
         }
 

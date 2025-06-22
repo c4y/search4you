@@ -25,6 +25,11 @@ class IndexPageListener
     private $tagsManager;
     
     /**
+     * @var DefaultManager
+     */
+    private $categoryManager;
+    
+    /**
      * IndexPageListener constructor.
      * 
      * @param KernelInterface $kernel
@@ -34,7 +39,8 @@ class IndexPageListener
         $projectDir = $kernel->getProjectDir();
         $environment = $kernel->getEnvironment();
         $this->cacheDir = $projectDir . '/var/cache/' . $environment . '/search_lite';
-        $this->tagsManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_manager');
+        $this->tagsManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_tags_manager');
+        $this->categoryManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_category_manager');
     }
     
     public function __invoke(string $content, array $pageData, array &$indexData): void
@@ -60,8 +66,11 @@ class IndexPageListener
     {
         $engine = $this->getLoupeEngine();
 
-        $criteria = $this->tagsManager->createTagCriteria()->setSourceIds([$indexData['pid']]);
-        $tags = $this->tagsManager->getTagFinder()->findMultiple($criteria);
+        $tagsCriteria = $this->tagsManager->createTagCriteria()->setSourceIds([$indexData['pid']]);
+        $tags = $this->tagsManager->getTagFinder()->findMultiple($tagsCriteria);
+
+        $categoryCriteria = $this->categoryManager->createTagCriteria()->setSourceIds([$indexData['pid']]);
+        $category = $this->categoryManager->getTagFinder()->findMultiple($categoryCriteria);
         
         $tagNames = array_map(function ($tag) {
             return $tag->getName();
@@ -72,6 +81,7 @@ class IndexPageListener
             'id' => $indexData['pid'],
             'url' => $indexData['url'],
             'title' => $indexData['title'],
+            'category' => $category[0]->getName(),
             'tags' => $tagNames,
             'content' => $cleanContent,
             'search' => $this->removeStopwords($cleanContent)
