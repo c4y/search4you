@@ -75,7 +75,7 @@ class SearchController extends AbstractController
      * 
      * @return array Array of context snippets
      */
-    private function extractContexts(string $highlightedContent, int $snippetSize = 200): array
+    private function extractContexts(string $highlightedContent, int $snippetSize = 50): array
     {
         // If no highlighted content, return an empty array
         if (empty($highlightedContent)) {

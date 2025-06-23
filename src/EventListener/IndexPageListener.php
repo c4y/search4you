@@ -122,8 +122,12 @@ class IndexPageListener
     
     private function cleanHtml(string $html): string
     {
+        // Entferne den Titel
+        $html = preg_replace('/<title>(.*?)<\/title>/i', '', $html);
+
         // Ersetze Bilder durch ihre Alt-Texte, falls vorhanden
         $html = preg_replace('/<img\b[^>]*alt=[\'"]([^\'"]*)[\'"](.*?)>/i', '[Bild: $1]', $html);
+
         // Entferne Bilder ohne Alt-Text
         $html = preg_replace('/<img\b[^>]*>/i', '[Bild]', $html);
 
