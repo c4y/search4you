@@ -48,7 +48,7 @@ class SearchController extends AbstractController
     {
         $this->projectDir = $kernel->getProjectDir();
         $this->environment = $kernel->getEnvironment();
-        $this->cacheDir = $this->projectDir . '/var/cache/' . $this->environment . '/search_lite';
+        $this->cacheDir = $this->projectDir . '/var/search_lite';
     }
     
     /**

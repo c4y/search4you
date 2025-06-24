@@ -38,7 +38,7 @@ class IndexPageListener
     {
         $projectDir = $kernel->getProjectDir();
         $environment = $kernel->getEnvironment();
-        $this->cacheDir = $projectDir . '/var/cache/' . $environment . '/search_lite';
+        $this->cacheDir = $projectDir . '/var/search_lite';
         $this->tagsManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_tags_manager');
         $this->categoryManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_category_manager');
     }
