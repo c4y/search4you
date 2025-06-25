@@ -14,10 +14,7 @@ use Codefog\TagsBundle\Manager\DefaultManager;
 #[AsHook('indexPage')]
 class IndexPageListener
 {
-    /**
-     * @var string
-     */
-    private $cacheDir;
+    private string $projectDir;
     
     /**
      * @var DefaultManager
@@ -31,16 +28,11 @@ class IndexPageListener
     
     /**
      * IndexPageListener constructor.
-     * 
-     * @param KernelInterface $kernel
      */
-    public function __construct(KernelInterface $kernel)
-    {
-        $projectDir = $kernel->getProjectDir();
-        $environment = $kernel->getEnvironment();
-        $this->cacheDir = $projectDir . '/var/search_lite';
+    public function __construct(KernelInterface $kernel) {
         $this->tagsManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_tags_manager');
         $this->categoryManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_category_manager');
+        $this->projectDir = $kernel->getProjectDir();
     }
     
     public function __invoke(string $content, array $pageData, array &$indexData): void
@@ -54,11 +46,13 @@ class IndexPageListener
     {
         $config = Configuration::create()
             ->withPrimaryKey('id')
-            ->withSearchableAttributes(['title', 'content'])
-            ->withLanguages(['de', 'fr'])
+            ->withSearchableAttributes(['title', 'search', 'is_featured'])
+            ->withLanguages(['de', 'en'])
+            ->withSortableAttributes(['is_featured'])
             ->withFilterableAttributes(['tags', 'category']);
 
-        return (new LoupeFactory())->create($this->cacheDir, $config);
+        $cacheDir = $this->projectDir . '/var/search_lite';
+        return (new LoupeFactory())->create($cacheDir, $config);
     }
 
     // Hilfsfunktion zum Hinzufügen einer Webseite zu Loupe
@@ -75,20 +69,21 @@ class IndexPageListener
         $tagNames = array_map(function ($tag) {
             return $tag->getName();
         }, $tags);
-
+        
         $cleanContent = $this->cleanHtml($content);
         $document = [
-            'id' => $indexData['pid'],
+            'id' => 'page-' . $indexData['pid'],
+            'is_featured' => false,
             'url' => $indexData['url'],
             'title' => $indexData['title'],
-            'category' => $category[0]->getName(),
+            'category' => $category[0] === null ? '' : $category[0]->getName(),
             'tags' => $tagNames,
             'content' => $cleanContent,
             'search' => $this->removeStopwords($cleanContent)
         ];
         
         // Dokument neu hinzufügen (Upsert)
-        $engine->addDocument($document);
+        $result = $engine->addDocument($document);
 
         return true;
     }

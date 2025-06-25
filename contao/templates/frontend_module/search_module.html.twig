@@ -176,6 +176,17 @@
     margin-bottom: 0.5rem;
 }
 
+/* Featured item styling */
+.sl-result-item.featured {
+    background-color: #f8f9fa;
+    border-left: 4px solid #4a90e2;
+    padding-left: 1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+
+
 /* Tags */
 .sl-tags {
     display: flex;
@@ -425,9 +436,10 @@
             }
         }
     }
-
     function renderResults(duration = 0) {
         console.log('renderResults called with duration:', duration);
+        console.log('Current results:', JSON.stringify(currentResults, null, 2)); // Debug log
+        
         const durationText = duration > 0 ? ` (${Math.round(duration)} ms)` : '';
         const resultText = `${currentResults.length} Treffer${durationText}`;
         console.log('Setting results count to:', resultText);
@@ -441,11 +453,35 @@
         resultsContainer.innerHTML = '';
         currentResults.slice(0, limit).forEach(r => {
             const div = document.createElement('div');
-            div.className = 'sl-result-item';
             
+            // Add 'featured' class if the item is featured
+            const isFeatured = (typeof r.is_featured !== 'undefined') ? 
+                (r.is_featured === true || r.is_featured === 'true' || r.is_featured === 1) : false;
+                
+            console.log('Rendering result:', r.title, 'is_featured:', isFeatured, 'raw value:', r.is_featured);
+            
+            div.className = 'sl-result-item' + (isFeatured ? ' featured' : '');
+            
+            // Handle content for both featured and non-featured items
+            let contentHtml = '';
+            if (isFeatured) {
+                // For featured items, use the full content if available
+                contentHtml = r.content_snippet ? 
+                    '<div class="sl-result-content">' + r.content_snippet + '</div>' : '';
+            } else {
+                // For non-featured items, use the content_snippet
+                contentHtml = r.content_snippet ? 
+                    '<div class="sl-result-snippet">' + r.content_snippet + '</div>' : '';
+            }
+                
             div.innerHTML =
-                '<h4 class="sl-result-title"><a href="' + r.url + '" target="_blank" rel="noopener">' + r.title + '</a></h4>' +
-                '<div class="sl-result-snippet">' + r.content_snippet + '</div>';
+                '<h4 class="sl-result-title">' +
+                    '<a href="' + (r.url || '#') + '" target="_blank" rel="noopener">' + 
+                        (r.title || 'Ohne Titel') + 
+                    '</a>' +
+                '</h4>' +
+                contentHtml;
+                
             resultsContainer.appendChild(div);
         });
     }

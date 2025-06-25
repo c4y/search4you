@@ -60,8 +60,9 @@ class SearchController extends AbstractController
     {
         $config = Configuration::create()
             ->withPrimaryKey('id')
-            ->withSearchableAttributes(['title', 'search']) // Verwende das bereinigte Content-Feld für die Suche
+            ->withSearchableAttributes(['title', 'search', 'is_featured']) // Include is_featured in searchable attributes
             ->withLanguages(['de', 'en'])
+            ->withSortableAttributes(['is_featured'])
             ->withFilterableAttributes(['tags', 'category']);
         
         return (new LoupeFactory())->create($this->cacheDir, $config);
@@ -164,7 +165,9 @@ class SearchController extends AbstractController
             // Verwende search für die Suche, aber content für die Anzeige
             $searchParams = SearchParameters::create()
                 ->withQuery($query)
-                ->withAttributesToHighlight(['title', 'search'], '<em>', '</em>');
+                ->withAttributesToSearchOn(['title', 'search'])  // Explicitly set searchable fields
+                ->withAttributesToHighlight(['title', 'search'], '<em>', '</em>')
+                ->withSort(['is_featured:desc']);
                 
             // Tag-Filter anwenden, falls vorhanden
             if (!empty($tagsFilter)) {
@@ -182,34 +185,44 @@ class SearchController extends AbstractController
             // Für alle Treffer das Ergebnis aufbereiten und Tags sammeln
             $formattedResults = [];
             $allTags = [];
+            $allCategories = [];
             
             foreach ($resultArray['hits'] as $hit) {
+                $isFeatured = $hit['is_featured'] ?? false;
+                
                 // Title mit Highlight extrahieren
                 $title = isset($hit['_formatted']['title']) ? $hit['_formatted']['title'] : ($hit['title'] ?? 'Kein Titel');
                 
-                // Verwende die bereits von Loupe hervorgehobenen Inhalte
-                $contentHighlights = isset($hit['_formatted']['search']) ? $hit['_formatted']['search'] : '';
-                
-                // Extrahiere den Kontext aus dem hervorgehobenen Inhalt
-                $contexts = $this->extractContexts($contentHighlights);
-                $combinedSnippet = implode('...', $contexts);
+                // Für featured Items keinen Kontext extrahieren
+                $combinedSnippet = '';
+                if (!$isFeatured) {
+                    // Nur für nicht-featured Items Kontext extrahieren
+                    $contentHighlights = isset($hit['_formatted']['search']) ? $hit['_formatted']['search'] : '';
+                    $contexts = $this->extractContexts($contentHighlights);
+                    $combinedSnippet = implode('...', $contexts);
+                }
                 
                 // Ensure we have a valid score
                 $score = isset($hit['_score']) ? (float)$hit['_score'] : 1.0;
                 
-                // Tags und Kategorien aus dem Hit extrahieren, falls vorhanden
-                $tags = $hit['tags'] ?? [];
-                if (!empty($tags)) {
-                    if (is_string($tags)) {
+                // Tags und Kategorien nur für nicht-featured Items verarbeiten
+                $tags = [];
+                if (!$isFeatured) {
+                    $tags = $hit['tags'] ?? [];
+                    if (!empty($tags) && is_string($tags)) {
                         $tags = array_map('trim', explode(',', $tags));
                     }
-                    $allTags = array_merge($allTags, $tags);
-                }
-                
-                // Kategorie aus dem Hit extrahieren, falls vorhanden
-                $category = $hit['category'] ?? '';
-                if (!empty($category)) {
-                    $allCategories[] = $category;
+                    if (!empty($tags) && is_array($tags)) {
+                        $allTags = array_merge($allTags, $tags);
+                    }
+                    
+                    // Kategorie aus dem Hit extrahieren, falls vorhanden
+                    $category = $hit['category'] ?? '';
+                    if (!empty($category)) {
+                        $allCategories[] = $category;
+                    }
+                } else {
+                    $combinedSnippet = $hit['content'];
                 }
                 
                 $formattedResults[] = [
@@ -219,7 +232,8 @@ class SearchController extends AbstractController
                     'content_snippet' => $combinedSnippet,
                     'score' => $score,
                     'category' => $hit['category'] ?? '',
-                    'tags' => is_array($tags) ? $tags : []
+                    'tags' => is_array($tags) ? $tags : [],
+                    'is_featured' => $isFeatured
                 ];
             }
             
