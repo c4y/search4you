@@ -74,24 +74,22 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 		'text' => array
 		(
 			'search'                  => true,
-			'inputType'               => 'text',
+			'inputType'               => 'textarea',
 			'eval'                    => array('mandatory'=>true, 'tl_class'=>'clr'),
 			'sql'                     => "text NOT NULL default ''"
 		),
 		'suchtext' => array
 		(
 			'search'                  => true,
-			'inputType'               => 'text',
+			'inputType'               => 'textarea',
 			'eval'                    => array('mandatory'=>true, 'tl_class'=>'clr'),
 			'sql'                     => "text NOT NULL default ''"
 		),
 		'url' => array
 		(
-			'inputType'               => 'pageTree',
-			'foreignKey'              => 'tl_page.title',
-			'eval'                    => array('fieldType'=>'radio', 'tl_class'=>'clr'),
-			'sql'                     => "int(10) unsigned NOT NULL default 0",
-			'relation'                => array('type'=>'hasOne', 'load'=>'lazy')
+			'inputType'               => 'text',
+			'eval'                    => array('dcaPicker' => true, 'rgxp'=>'url', 'tl_class'=>'clr'),
+			'sql'                     => "text NULL",
 		),
 	)
 );
