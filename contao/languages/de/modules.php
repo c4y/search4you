@@ -8,3 +8,6 @@ $GLOBALS['TL_LANG']['MOD']['search_lite_featured_items'] = [
     'Suche - Top-Einträge',
     '',
 ];
+
+
+    

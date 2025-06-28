@@ -50,7 +50,7 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 	// Palettes
 	'palettes' => array
 	(
-		'default'                     => '{title_legend},title,text,suchtext,url,{invisible_legend:hide},invisible'
+		'default'                     => '{title_legend},title,text,suchtext,url;{invisible_legend:hide},invisible'
 	),
 
 
