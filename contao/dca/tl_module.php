@@ -1,5 +1,12 @@
 <?php
+/**
+ * @package    contao-search-lite
+ * @author     Oliver Lohoff <info@contao4you.de>
+ * @copyright  Contao4you 2025
+ * @license    LGPL-3.0-or-later
+ */
 
+ 
 use C4Y\SearchLiteBundle\EventListener\DataContainer\SearchLiteModuleListener;
 
 $GLOBALS['TL_DCA']['tl_module']['palettes']['search_module'] =

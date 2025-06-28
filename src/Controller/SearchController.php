@@ -1,10 +1,11 @@
 <?php
 /**
  * @package    contao-search-lite
- * @author     david thieme <david.thieme@code4you.net>
- * @copyright  code4you 2023
- * @license    GPL-3.0-or-later
+ * @author     Oliver Lohoff <info@contao4you.de>
+ * @copyright  Contao4you 2025
+ * @license    LGPL-3.0-or-later
  */
+
 
 namespace C4Y\SearchLiteBundle\Controller;
 
