@@ -28,7 +28,7 @@ class LoupeEngineFactory
                 ->withSearchableAttributes(['title', 'search'])
                 ->withLanguages(['de', 'en'])
                 ->withSortableAttributes(['is_featured', 'sorting'])
-                ->withFilterableAttributes(['id', 'tags', 'category']);
+                ->withFilterableAttributes(['tags', 'category', 'origin', 'root']);
 
             $this->loupe = (new LoupeFactory())->create($this->projectDir . '/var/search_lite', $config);
         }

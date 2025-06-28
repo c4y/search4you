@@ -128,6 +128,8 @@ class SearchController extends AbstractController
         $query = $request->query->get('query', '');
         $tagsFilter = trim($request->query->get('tags', ''));
         $categoryFilter = trim($request->query->get('category', ''));
+        $rootPage = $request->query->get('rootPage', '');
+        $featuredCategory = $request->query->get('featuredCategory', '');
         
         // Wenn weder Query noch Tag vorhanden ist, leere Ergebnisse zurückgeben
         if (empty($query) && empty($tagsFilter) && empty($categoryFilter)) {
@@ -142,7 +144,7 @@ class SearchController extends AbstractController
         // Suche durchführen
         try {
             $engine = $this->getLoupeEngine();
-            
+
             // Suche mit Hervorhebung konfigurieren
             // Verwende search für die Suche, aber content für die Anzeige
             $searchParams = SearchParameters::create()
@@ -150,17 +152,23 @@ class SearchController extends AbstractController
                 ->withAttributesToSearchOn(['title', 'search'])  // Explicitly set searchable fields
                 ->withAttributesToHighlight(['title', 'search'], '<em>', '</em>')
                 ->withSort(['is_featured:desc', 'sorting:asc']);
+
+            // nur in einem Seitenbaum und featured Items einer Kategorie
+            $filter = "(origin='page' AND root='" . $rootPage . "') OR (origin='featured' AND root=" . $featuredCategory . ")";
                 
             // Tag-Filter anwenden, falls vorhanden
             if (!empty($tagsFilter)) {
-                $searchParams = $searchParams->withFilter("tags = '" . $tagsFilter . "'");
+                //$searchParams = $searchParams->withFilter("tags = '" . $tagsFilter . "'");
+                $filter .= " AND tags = '" . $tagsFilter . "'";
             }
 
             // Kategorie-Filter anwenden, falls vorhanden
             if (!empty($categoryFilter)) {
-                $searchParams = $searchParams->withFilter("category = '" . $categoryFilter . "'");
+                //$searchParams = $searchParams->withFilter("category = '" . $categoryFilter . "'");
+                $filter .= " AND category = '" . $categoryFilter . "'";
             }   
-                
+
+            $searchParams = $searchParams->withFilter($filter);
             $searchResult = $engine->search($searchParams);
             $resultArray = $searchResult->toArray();
             
@@ -211,6 +219,8 @@ class SearchController extends AbstractController
                     'id' => $hit['id'],
                     'url' => $hit['url'] ?? '',
                     'title' => $title,
+                    'origin' => $hit['origin'] ?? '',
+                    'root' => $hit['root'] ?? '',
                     'sorting' => $hit['sorting'] ?? '',
                     'content_snippet' => $combinedSnippet,
                     'score' => $score,

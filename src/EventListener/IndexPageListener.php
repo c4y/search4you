@@ -63,7 +63,7 @@ class IndexPageListener
             'id' => 'page-' . $indexData['pid'],
             'is_featured' => false,
             'origin' => 'page',
-            'root' => $objPage->root, 
+            'root' => $objPage->rootId, 
             'sorting' => null,
             'url' => $indexData['url'],
             'title' => $indexData['title'],
