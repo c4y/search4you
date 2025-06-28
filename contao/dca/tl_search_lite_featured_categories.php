@@ -9,7 +9,7 @@ use Contao\Input;
 use Contao\StringUtil;
 use Contao\System;
 
-$GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
+$GLOBALS['TL_DCA']['tl_search_lite_featured_categories'] = array
 (
 	// Config
 	'config' => array
@@ -17,7 +17,7 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 		'dataContainer'               => DC_Table::class,
 		'switchToEdit'                => true,
 		'enableVersioning'            => true,
-		'ptable'                      => 'tl_search_lite_featured_categories',
+		'ctable'                      => array('tl_search_lite_featured_items'),
 		'markAsCopy'                  => 'title',
 		'sql' => array
 		(
@@ -34,9 +34,9 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 	(
 		'sorting' => array
 		(
-			'mode'                    => DataContainer::MODE_PARENT,
-			'fields'                  => array('sorting'),
-			'headerFields'            => array('title', 'url'),
+			'mode'                    => DataContainer::MODE_SORTED,
+			'fields'                  => array('title'),
+			'flag'                    => DataContainer::SORT_INITIAL_LETTER_ASC,
 			'panelLayout'             => 'filter;search,limit',
 			'defaultSearchField'      => 'title'
 		),
@@ -61,14 +61,6 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 		(
 			'sql'                     => "int(10) unsigned NOT NULL auto_increment"
 		),
-		'pid' => array
-		(
-			'sql'                     => "int(10) unsigned NOT NULL default 0"
-		),
-		'sorting' => array
-		(
-			'sql'                     => "int(10) unsigned NOT NULL default 0"
-		),
 		'tstamp' => array
 		(
 			'sql'                     => "int(10) unsigned NOT NULL default 0"
@@ -80,30 +72,10 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 			'eval'                    => array('mandatory'=>true, 'maxlength'=>255, 'tl_class'=>'w50'),
 			'sql'                     => "varchar(255) NOT NULL default ''"
 		),
-		'text' => array
-		(
-			'search'                  => true,
-			'inputType'               => 'textarea',
-			'eval'                    => array('mandatory'=>true, 'tl_class'=>'clr'),
-			'sql'                     => "text NOT NULL default ''"
-		),
-		'suchtext' => array
-		(
-			'search'                  => true,
-			'inputType'               => 'textarea',
-			'eval'                    => array('mandatory'=>true, 'tl_class'=>'clr'),
-			'sql'                     => "text NOT NULL default ''"
-		),
-		'url' => array
-		(
-			'inputType'               => 'text',
-			'eval'                    => array('dcaPicker' => true, 'rgxp'=>'url', 'tl_class'=>'clr'),
-			'sql'                     => "text NULL",
-		),
 	)
 );
 
-class tl_search_lite_featured_items extends Backend
+class tl_search_lite_featured_categories extends Backend
 {
 
 
