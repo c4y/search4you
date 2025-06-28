@@ -33,8 +33,8 @@ class Plugin implements BundlePluginInterface, RoutingPluginInterface, Extension
     public function getRouteCollection(LoaderResolverInterface $resolver, KernelInterface $kernel)
     {
         return $resolver
-            ->resolve(__DIR__ . '/../../config/routing.yml')
-            ->load(__DIR__ . '/../../config/routing.yml');
+            ->resolve(__DIR__ . '/../../config/routing.yaml')
+            ->load(__DIR__ . '/../../config/routing.yaml');
     }
 
     public function getExtensionConfig($extensionName, array $extensionConfigs, ContainerBuilder $container)

@@ -13,3 +13,8 @@ services:
         public: true
         resource: ../src/EventListener
         tags: ['controller.service_arguments']
+
+    C4Y\SearchLiteBundle\Service\LoupeEngineFactory:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+            $environment: '%kernel.environment%'

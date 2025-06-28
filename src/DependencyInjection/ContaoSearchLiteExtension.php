@@ -14,7 +14,7 @@ class ContaoSearchLiteExtension extends Extension
             $container,
             new FileLocator(__DIR__.'/../../config')
         );
-        $loader->load('services.yml');
+        $loader->load('services.yaml');
         
         // Register the templates directory with Twig
         $bundlePath = realpath(__DIR__.'/../../');

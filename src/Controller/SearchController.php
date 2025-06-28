@@ -18,6 +18,7 @@ use Loupe\Loupe\Loupe;
 use Loupe\Loupe\Configuration;
 use Loupe\Loupe\SearchParameters;
 use Loupe\Loupe\LoupeFactory;
+use C4Y\SearchLiteBundle\Service\LoupeEngineFactory;
 
 /**
  * Class SearchController
@@ -27,28 +28,16 @@ use Loupe\Loupe\LoupeFactory;
 class SearchController extends AbstractController
 {
     /**
-     * @var string
+     * @var LoupeEngineFactory
      */
-    private $projectDir;
-    
-    /**
-     * @var string
-     */
-    private $environment;
-    
-    /**
-     * @var string
-     */
-    private $cacheDir;
+    private $loupeEngineFactory;
     
     /**
      * Constructor
      */
-    public function __construct(KernelInterface $kernel)
+    public function __construct(LoupeEngineFactory $loupeEngineFactory)
     {
-        $this->projectDir = $kernel->getProjectDir();
-        $this->environment = $kernel->getEnvironment();
-        $this->cacheDir = $this->projectDir . '/var/search_lite';
+        $this->loupeEngineFactory = $loupeEngineFactory;
     }
     
     /**
@@ -58,14 +47,7 @@ class SearchController extends AbstractController
      */
     private function getLoupeEngine(): Loupe
     {
-        $config = Configuration::create()
-            ->withPrimaryKey('id')
-            ->withSearchableAttributes(['title', 'search', 'is_featured']) // Include is_featured in searchable attributes
-            ->withLanguages(['de', 'en'])
-            ->withSortableAttributes(['is_featured'])
-            ->withFilterableAttributes(['tags', 'category']);
-        
-        return (new LoupeFactory())->create($this->cacheDir, $config);
+        return $this->loupeEngineFactory->getLoupeEngine();
     }
     
     /**

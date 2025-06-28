@@ -5,17 +5,14 @@ namespace C4Y\SearchLiteBundle\EventListener;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsHook;
 use Contao\StringUtil;
 use Symfony\Component\HttpKernel\KernelInterface;
-use Loupe\Loupe\Configuration;
 use Loupe\Loupe\Loupe;
-use Loupe\Loupe\LoupeFactory;
 use Contao\PageModel;
 use Codefog\TagsBundle\Manager\DefaultManager;
+use C4Y\SearchLiteBundle\Service\LoupeEngineFactory;
 
 #[AsHook('indexPage')]
 class IndexPageListener
 {
-    private string $projectDir;
-    
     /**
      * @var DefaultManager
      */
@@ -27,12 +24,17 @@ class IndexPageListener
     private $categoryManager;
     
     /**
+     * @var LoupeEngineFactory
+     */
+    private $loupeEngineFactory;
+    
+    /**
      * IndexPageListener constructor.
      */
-    public function __construct(KernelInterface $kernel) {
+    public function __construct(KernelInterface $kernel, LoupeEngineFactory $loupeEngineFactory) {
         $this->tagsManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_tags_manager');
         $this->categoryManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_category_manager');
-        $this->projectDir = $kernel->getProjectDir();
+        $this->loupeEngineFactory = $loupeEngineFactory;
     }
     
     public function __invoke(string $content, array $pageData, array &$indexData): void
@@ -44,15 +46,7 @@ class IndexPageListener
     // Hilfsfunktion zum Initialisieren von Loupe
     private function getLoupeEngine(): Loupe
     {
-        $config = Configuration::create()
-            ->withPrimaryKey('id')
-            ->withSearchableAttributes(['title', 'search', 'is_featured'])
-            ->withLanguages(['de', 'en'])
-            ->withSortableAttributes(['is_featured'])
-            ->withFilterableAttributes(['tags', 'category']);
-
-        $cacheDir = $this->projectDir . '/var/search_lite';
-        return (new LoupeFactory())->create($cacheDir, $config);
+        return $this->loupeEngineFactory->getLoupeEngine();
     }
 
     // Hilfsfunktion zum Hinzufügen einer Webseite zu Loupe

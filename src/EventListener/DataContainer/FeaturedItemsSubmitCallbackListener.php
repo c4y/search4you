@@ -5,27 +5,22 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
 use Doctrine\DBAL\Connection;
-use Symfony\Component\HttpKernel\KernelInterface;
-use Loupe\Loupe\Configuration;
+use C4Y\SearchLiteBundle\Service\LoupeEngineFactory;
 use Loupe\Loupe\Loupe;
-use Loupe\Loupe\LoupeFactory;
-use Codefog\TagsBundle\Manager\DefaultManager;
 
 #[AsCallback(table: 'tl_search_lite_featured_items', target: 'config.onsubmit')]
 class FeaturedItemsSubmitCallbackListener
 {
     private Connection $db;
-    private string $projectDir;
-    private string $cacheDir;
+    private LoupeEngineFactory $loupeEngineFactory;
 
     /**
      * @var string
      */
-    public function __construct(Connection $db, KernelInterface $kernel)
+    public function __construct(Connection $db, LoupeEngineFactory $loupeEngineFactory)
     {
         $this->db = $db;
-        $this->projectDir = $kernel->getProjectDir();
-        $this->cacheDir = $kernel->getProjectDir() . '/var/search_lite';
+        $this->loupeEngineFactory = $loupeEngineFactory;
     }
 
     public function __invoke(DataContainer $dc): void
@@ -33,22 +28,9 @@ class FeaturedItemsSubmitCallbackListener
         $this->addWebpageToLoupe($dc);
     }
 
-    private function getLoupeEngine(): Loupe
-    {
-        $config = Configuration::create()
-            ->withPrimaryKey('id')
-            ->withSearchableAttributes(['title', 'search', 'is_featured'])
-            ->withLanguages(['de', 'en'])
-            ->withSortableAttributes(['is_featured'])
-            ->withFilterableAttributes(['tags', 'category']);
-
-        $cacheDir = $this->projectDir . '/var/search_lite';
-        return (new LoupeFactory())->create($cacheDir, $config);
-    }
-
     private function addWebpageToLoupe(DataContainer $dc): bool
     {
-        $engine = $this->getLoupeEngine();
+        $engine = $this->loupeEngineFactory->getLoupeEngine();
 
         $record = $dc->getCurrentRecord();
 
