@@ -6,7 +6,6 @@
  * @license    LGPL-3.0-or-later
  */
 
-
 namespace C4Y\SearchLiteBundle\Controller;
 
 use Symfony\Component\HttpFoundation\Request;
@@ -155,7 +154,7 @@ class SearchController extends AbstractController
                 ->withSort(['is_featured:desc', 'sorting:asc']);
 
             // nur in einem Seitenbaum und featured Items einer Kategorie
-            $filter = "(origin='page' AND root='" . $rootPage . "') OR (origin='featured' AND root=" . $featuredCategory . ")";
+            $filter = "(origin='page' AND root=" . $rootPage . ") OR (origin='featured' AND root=" . $featuredCategory . ")";
                 
             // Tag-Filter anwenden, falls vorhanden
             if (!empty($tagsFilter)) {
