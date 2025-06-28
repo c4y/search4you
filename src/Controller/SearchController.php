@@ -158,13 +158,11 @@ class SearchController extends AbstractController
                 
             // Tag-Filter anwenden, falls vorhanden
             if (!empty($tagsFilter)) {
-                //$searchParams = $searchParams->withFilter("tags = '" . $tagsFilter . "'");
                 $filter .= " AND tags = '" . $tagsFilter . "'";
             }
 
             // Kategorie-Filter anwenden, falls vorhanden
             if (!empty($categoryFilter)) {
-                //$searchParams = $searchParams->withFilter("category = '" . $categoryFilter . "'");
                 $filter .= " AND category = '" . $categoryFilter . "'";
             }   
 
