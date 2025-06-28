@@ -3,10 +3,10 @@
 use C4Y\SearchLiteBundle\EventListener\DataContainer\SearchLiteModuleListener;
 
 $GLOBALS['TL_DCA']['tl_module']['palettes']['search_module'] =
-    '{title_legend},name,type,search_lite_category,search_lite_rootPage'
+    '{title_legend},name,type,search_lite_featured_category,search_lite_rootPage'
 ;
 
-$GLOBALS['TL_DCA']['tl_module']['fields']['search_lite_category'] = array(
+$GLOBALS['TL_DCA']['tl_module']['fields']['search_lite_featured_category'] = array(
     'inputType' => 'select',
     'eval' => array('tl_class' => 'clr'),
     'foreignKey' => 'tl_search_lite_featured_categories.title',

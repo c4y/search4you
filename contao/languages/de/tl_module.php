@@ -1,6 +1,6 @@
 <?php
 
-$GLOBALS['TL_LANG']['tl_module']['search_lite_category'] = [
+$GLOBALS['TL_LANG']['tl_module']['search_lite_featured_category'] = [
     'Suche - Top-Treffer',
     '',
 ];

@@ -14,6 +14,7 @@ class SearchModule extends AbstractFrontendModuleController
     protected function getResponse(Template $template, ModuleModel $model, Request $request): Response
     {
         $template->text = $model->text;
+        $template->featuredCategory = $model->featuredCategory;
         
         return $template->getResponse();
     }
