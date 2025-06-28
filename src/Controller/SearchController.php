@@ -149,7 +149,7 @@ class SearchController extends AbstractController
                 ->withQuery($query)
                 ->withAttributesToSearchOn(['title', 'search'])  // Explicitly set searchable fields
                 ->withAttributesToHighlight(['title', 'search'], '<em>', '</em>')
-                ->withSort(['is_featured:desc']);
+                ->withSort(['is_featured:desc', 'sorting:asc']);
                 
             // Tag-Filter anwenden, falls vorhanden
             if (!empty($tagsFilter)) {
@@ -211,6 +211,7 @@ class SearchController extends AbstractController
                     'id' => $hit['id'],
                     'url' => $hit['url'] ?? '',
                     'title' => $title,
+                    'sorting' => $hit['sorting'] ?? '',
                     'content_snippet' => $combinedSnippet,
                     'score' => $score,
                     'category' => $hit['category'] ?? '',

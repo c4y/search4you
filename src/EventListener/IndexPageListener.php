@@ -3,9 +3,7 @@
 namespace C4Y\SearchLiteBundle\EventListener;
 
 use Contao\CoreBundle\DependencyInjection\Attribute\AsHook;
-use Contao\StringUtil;
 use Symfony\Component\HttpKernel\KernelInterface;
-use Loupe\Loupe\Loupe;
 use Contao\PageModel;
 use Codefog\TagsBundle\Manager\DefaultManager;
 use C4Y\SearchLiteBundle\Service\LoupeEngineFactory;
@@ -39,7 +37,6 @@ class IndexPageListener
     
     public function __invoke(string $content, array $pageData, array &$indexData): void
     {
-
         $this->addWebpageToLoupe($content, $indexData);
     }
 
@@ -57,11 +54,17 @@ class IndexPageListener
         $tagNames = array_map(function ($tag) {
             return $tag->getName();
         }, $tags);
+
+        $objPage = PageModel::findByPk($indexData['pid']);
+        $objPage->loadDetails();
         
         $cleanContent = $this->cleanHtml($content);
         $document = [
             'id' => 'page-' . $indexData['pid'],
             'is_featured' => false,
+            'origin' => 'page',
+            'root' => $objPage->root, 
+            'sorting' => null,
             'url' => $indexData['url'],
             'title' => $indexData['title'],
             'category' => $category[0] === null ? '' : $category[0]->getName(),
