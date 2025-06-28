@@ -287,6 +287,8 @@
     if (!wrapper) return;
 
     const limit = parseInt(wrapper.dataset.limit, 10) || 10;
+    const rootPage = {{ rootPage|default('0') }};
+    const featuredCategory = {{ featuredCategory|default('0') }};
     const inputEl = document.getElementById('sl-search-input');
     const resultsContainer = document.getElementById('sl-results-container');
     const resultsCountEl = document.getElementById('sl-results-count');
@@ -313,7 +315,7 @@
         if (activeCategory) {
             params.set('category', activeCategory);
         }
-        
+
         const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
         window.history.pushState({}, '', newUrl);
     }
@@ -546,6 +548,8 @@
         currentQuery = urlParams.get('query') || '';
         activeTagAlias = urlParams.get('tags') || '';
         activeCategory = urlParams.get('category') || '';
+        urlParams.set('rootPage', {{ rootPage }});
+        urlParams.set('featuredCategory', {{ featuredCategory }});
         
         inputEl.value = currentQuery;
         if (currentQuery || activeTagAlias || activeCategory) {
@@ -674,6 +678,12 @@
         if (activeCategory) {
             url += '&category=' + encodeURIComponent(activeCategory);
         }
+
+        // add RootPage
+        url += '&rootPage=' + encodeURIComponent(rootPage);
+
+        // add featuredCategory
+        url += '&featuredCategory=' + encodeURIComponent(featuredCategory);
         
         // Start timing
         const startTime = performance.now();
