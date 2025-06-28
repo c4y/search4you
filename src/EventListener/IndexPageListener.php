@@ -43,16 +43,10 @@ class IndexPageListener
         $this->addWebpageToLoupe($content, $indexData);
     }
 
-    // Hilfsfunktion zum Initialisieren von Loupe
-    private function getLoupeEngine(): Loupe
-    {
-        return $this->loupeEngineFactory->getLoupeEngine();
-    }
-
     // Hilfsfunktion zum Hinzufügen einer Webseite zu Loupe
     function addWebpageToLoupe(string $content, array $indexData): bool
     {
-        $engine = $this->getLoupeEngine();
+        $engine = $this->loupeEngineFactory->getLoupeEngine();
 
         $tagsCriteria = $this->tagsManager->createTagCriteria()->setSourceIds([$indexData['pid']]);
         $tags = $this->tagsManager->getTagFinder()->findMultiple($tagsCriteria);
