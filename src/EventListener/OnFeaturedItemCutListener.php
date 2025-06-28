@@ -10,7 +10,7 @@ use C4Y\SearchLiteBundle\Service\LoupeEngineFactory;
 use C4Y\SearchLiteBundle\Model\FeaturedItemModel;
 
 #[AsCallback(table: 'tl_search_lite_featured_items', target: 'config.oncut')]
-class OnCutListener
+class OnFeaturedItemCutListener
 {
     private $requestStack;
 
