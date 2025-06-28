@@ -50,7 +50,7 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 	// Palettes
 	'palettes' => array
 	(
-		'default'                     => '{title_legend},title,text,suchtext,url'
+		'default'                     => '{title_legend},title,text,suchtext,url,{invisible_legend:hide},invisible'
 	),
 
 
@@ -99,6 +99,13 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 			'inputType'               => 'text',
 			'eval'                    => array('dcaPicker' => true, 'rgxp'=>'url', 'tl_class'=>'clr'),
 			'sql'                     => "text NULL",
+		),
+		'invisible' => array
+		(
+			'reverseToggle'           => true,
+			'filter'                  => true,
+			'inputType'               => 'checkbox',
+			'sql'                     => array('type' => 'boolean', 'default' => false)
 		),
 	)
 );

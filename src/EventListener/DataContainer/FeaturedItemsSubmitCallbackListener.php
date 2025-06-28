@@ -5,7 +5,6 @@ use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
 use Doctrine\DBAL\Connection;
 use C4Y\SearchLiteBundle\Service\LoupeEngineFactory;
-use C4Y\SearchLiteBundle\Model\FeaturedItemModel;
 
 #[AsCallback(table: 'tl_search_lite_featured_items', target: 'config.onsubmit')]
 class FeaturedItemsSubmitCallbackListener
@@ -24,10 +23,27 @@ class FeaturedItemsSubmitCallbackListener
 
     public function __invoke(DataContainer $dc): void
     {
-        $this->addWebpageToLoupe($dc);
+        $row = $dc->getCurrentRecord();
+
+        if($row['invisible']) {
+            $this->removeWebpageFromLoupe($dc);
+        } else {
+            $this->addWebpageToLoupe($dc);
+        }
     }
 
-    private function addWebpageToLoupe(DataContainer $dc): bool
+    protected function removeWebpageFromLoupe(DataContainer $dc): bool
+    {
+        $engine = $this->loupeEngineFactory->getLoupeEngine();
+
+        $row = $dc->getCurrentRecord();
+
+        $engine->deleteDocument("featured-" . $dc->id);
+
+        return true;
+    }
+
+    protected function addWebpageToLoupe(DataContainer $dc): bool
     {
         $engine = $this->loupeEngineFactory->getLoupeEngine();
 
@@ -50,22 +66,6 @@ class FeaturedItemsSubmitCallbackListener
         // Dokument neu hinzufügen (Upsert)
         $result = $engine->addDocument($document);
 
-        $this->checkAndUpdateSortingOfItems($row['pid']);
-
         return true;
-    }
-
-    protected function checkAndUpdateSortingOfItems(int $pid) {
-        $featuredItems = FeaturedItemModel::findByPid($pid);
-        $engine = $this->loupeEngineFactory->getLoupeEngine();
-        
-        foreach($featuredItems as $item) {
-            $document = $engine->getDocument("featured-" . $item->id);
-            if($item->sorting != $document['sorting']) {
-                $document['sorting'] = $item->sorting;
-                $engine->addDocument($document);
-            }
-        }
-        
     }
 }
