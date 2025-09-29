@@ -1,0 +1,3 @@
+api:
+    resource: "@ContaoSearch4youBundle/src/Controller"
+    type: attribute

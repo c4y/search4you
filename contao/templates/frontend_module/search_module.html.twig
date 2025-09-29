@@ -1,0 +1,778 @@
+{#
+    Search4You Frontend Module Template
+    - Vanilla JS AJAX search against /search4you/search?query=
+    - Categories sidebar with filtering
+#}
+
+<style>
+/* Container layout */
+.s4y-search-wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+}
+
+.s4y-filter-toggle {
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 3px;
+    background-color: #f0f0f0;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.s4y-filter-toggle:hover {
+    background-color: #e0e0e0;
+}
+
+.s4y-categories {
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    overflow: hidden;
+}
+
+.s4y-categories.hidden {
+    max-height: 0 !important;
+    opacity: 0;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+@media screen and (min-width: 600px) {
+    .s4y-search-wrapper {
+        grid-template-columns: 250px 1fr;
+    }
+
+    .s4y-filter-toggle {
+        display: none;
+    }
+}
+
+/* Sidebar */
+.s4y-categories {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1rem;
+    max-height: 80vh;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out, padding 0.3s ease-in-out, border 0.3s ease-in-out;
+}
+
+.s4y-categories.hidden {
+    max-height: 0 !important;
+    opacity: 0;
+    padding: 0 1rem;
+    border: none;
+    margin: 0;
+}
+
+.s4y-categories h3 {
+    margin: 1rem 0 0.75rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+    font-size: 1rem;
+    color: #333;
+}
+
+.s4y-categories h3:first-child {
+    margin-top: 0;
+}
+
+.s4y-category-item {
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+}
+.s4y-category-item.active,
+.s4y-category-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Active filters */
+.s4y-active-filter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: #e9f5ff;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+#s4y-active-filters {
+    margin-top: 1rem;
+}
+
+.s4y-remove-filter {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.25rem;
+    margin-left: 0.5rem;
+}
+
+.s4y-remove-filter:hover {
+    color: #333;
+}
+
+.s4y-active-category .s4y-remove-filter {
+    color: white;
+}
+
+.s4y-active-category .s4y-remove-filter:hover {
+    border-color: white;
+}
+
+/* Tag list */
+#s4y-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Main column */
+.s4y-main {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Search bar */
+.s4y-search-bar {
+    position: relative;
+    margin-bottom: 1rem;
+}
+.s4y-search-input {
+    width: 100%;
+    padding: 0.6rem 2.5rem 0.6rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+.s4y-search-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: #888;
+}
+
+/* Result list */
+.s4y-results-count {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+/* Featured item styling */
+.s4y-result-item.featured {
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--accentColor);
+    padding-left: 1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+
+
+/* Tags */
+.s4y-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.s4y-tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #f0f0f0;
+    font-size: 0.85rem;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: 1px solid #ddd;
+}
+
+.s4y-tag:hover {
+    background-color: #e0e0e0;
+    text-decoration: none;
+}
+
+.s4y-tag.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0069d9;
+    display: flex;
+    justify-content: space-between;   
+}
+
+#s4y-tag-list .s4y-tag {
+    border-radius: 15px;
+}
+
+
+.s4y-result-item {
+    border-bottom: 1px solid #eee;
+    padding: 0.75rem 0;
+}
+.s4y-result-title {
+    font-size: 1.1rem;
+    margin: 0 0 0.25rem 0;
+    color: var(--accentColor);
+}
+.s4y-result-title a {
+    text-decoration: none;
+    color: inherit;
+}
+.s4y-result-title a:hover {
+    text-decoration: underline;
+}
+.s4y-result-snippet {
+    font-size: 0.95rem;
+}
+.s4y-no-results {
+    font-style: italic;
+    color: #666;
+}
+.s4y-result-snippet em {
+    background-color: yellow;
+}
+
+.s4y-result-item.zentrum h4 {
+    color: #18607b;
+}
+
+.s4y-result-item.zentrum {
+    border-left-color: #18607b;
+}
+
+.s4y-result-item.zentrum a,
+.s4y-result-item.zentrum a:hover,
+.s4y-result-item.zentrum a:active,
+.s4y-result-item.zentrum a:focus {
+    color: #18607b;
+}
+
+.s4y-filter-toggler.no-tags {
+    display: none;
+}
+
+.s4y-search-wrapper.notags {
+    grid-template-columns: 1fr;
+}
+
+.s4y-categories.notags {
+    display: none;
+}
+
+</style>
+
+<div class="s4y-filter-toggle{% if hideTags %} notags{% endif %}">Filter (ein-/ausblenden)</div>
+<div class="s4y-search-wrapper{% if hideTags %} notags{% endif %}">
+    <div class="s4y-categories{% if hideTags %} notags{% endif %}">
+        <h3>Kategorien</h3>
+        <div id="s4y-category-list">
+            <!-- Available categories will be shown here -->
+        </div>
+        
+        <div id="s4y-active-filters">
+            <!-- Active filters will be shown here -->
+        </div>
+        
+        <h3>Verfügbare Tags</h3>
+        <div id="s4y-tag-list">
+            <!-- Available tags will be shown here -->
+        </div>
+    </div>
+
+    <div class="s4y-main">
+        <div class="s4y-search-bar">
+            <input type="text" id="s4y-search-input" class="s4y-search-input" placeholder="Suche…" />
+            <span class="s4y-search-icon">🔍</span>
+        </div>
+        <div class="s4y-results-count" id="s4y-results-count"></div>
+        <div id="s4y-results-container"></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const wrapper = document.querySelector('.s4y-search-wrapper');
+    if (!wrapper) return;
+
+    const rootPage = {{ rootPage|default('0') }};
+    const featuredCategory = {{ featuredCategory|default('0') }};
+    const inputEl = document.getElementById('s4y-search-input');
+    const resultsContainer = document.getElementById('s4y-results-container');
+    const resultsCountEl = document.getElementById('s4y-results-count');
+    const tagListEl = document.getElementById('s4y-tag-list');
+    const categoryListEl = document.getElementById('s4y-category-list');
+    const activeFiltersEl = document.getElementById('s4y-active-filters');
+
+    let currentResults = [];
+    let allTags = {}; // Store tags as {alias: name} pairs
+    let allCategories = []; // Store all available categories
+    let activeTagAlias = ''; // Store the active tag alias for filtering
+    let activeTagName = ''; // Store the active tag name for display
+    let activeCategory = ''; // Store the active category for filtering
+    let currentQuery = '';
+
+    function updateUrl() {
+        const params = new URLSearchParams();
+        if (currentQuery) params.set('query', currentQuery);
+        
+        if (activeTagAlias && activeTagAlias !== '0') {
+            params.set('tags', activeTagAlias);
+        }
+        
+        if (activeCategory) {
+            params.set('category', activeCategory);
+        }
+
+        const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+        window.history.pushState({}, '', newUrl);
+    }
+
+    function renderCategories() {
+        // Clear and rebuild category list
+        categoryListEl.innerHTML = '';
+        
+        if (!allCategories || allCategories.length === 0) {
+            categoryListEl.innerHTML = '<div class="s4y-no-results">Keine Kategorien gefunden</div>';
+            return;
+        }
+        
+        // If there's an active category, show only that with remove button
+        if (activeCategory) {
+            const categoryContainer = document.createElement('div');
+            categoryContainer.className = 's4y-active-category';
+            
+            const categoryEl = document.createElement('span');
+            categoryEl.className = 's4y-tag active';
+            categoryEl.textContent = activeCategory;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 's4y-remove-filter';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCategoryClick('');
+            });
+            
+            categoryEl.appendChild(removeBtn);
+            categoryContainer.appendChild(categoryEl);
+            categoryListEl.appendChild(categoryContainer);
+            return;
+        }
+        
+        // Show all available categories if none is selected
+        const filteredCategories = [...new Set(allCategories)]
+            .filter(cat => cat && cat.trim() !== '')
+            .sort((a, b) => a.localeCompare(b));
+            
+        if (filteredCategories.length === 0) {
+            categoryListEl.innerHTML = '<div class="s4y-no-results">Keine Kategorien verfügbar</div>';
+            return;
+        }
+        
+        filteredCategories.forEach(category => {
+            const categoryEl = document.createElement('div');
+            categoryEl.className = 's4y-tag';
+            categoryEl.textContent = category;
+            
+            categoryEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCategoryClick(category);
+            });
+            
+            categoryListEl.appendChild(categoryEl);
+        });
+    }
+    
+    function renderTags() {
+        // Clear and rebuild tag list
+        tagListEl.innerHTML = '';
+        
+        if (!allTags || Object.keys(allTags).length === 0) {
+            tagListEl.innerHTML = '<div class="s4y-no-results">Keine Tags gefunden</div>';
+            return;
+        }
+        
+        // Convert to array of {alias, name} objects and sort by name
+        const sortedTags = Object.entries(allTags)
+            .filter(([alias]) => alias !== activeTagAlias) // Filter out active tag
+            .map(([alias, name]) => ({ alias, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        
+        if (sortedTags.length === 0) {
+            tagListEl.innerHTML = '<div class="s4y-no-results">Keine weiteren Tags verfügbar</div>';
+            return;
+        }
+        
+        sortedTags.forEach(tag => {
+            const tagEl = document.createElement('div');
+            tagEl.className = 's4y-tag';
+            tagEl.textContent = tag.name;
+            
+            // Store the alias in a data attribute for reference
+            tagEl.dataset.tag = tag.alias;
+            
+            // Add click handler
+            tagEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleTagClick(tag.alias);
+            });
+            
+            tagListEl.appendChild(tagEl);
+        });
+    }
+    
+    function renderActiveFilters() {
+        activeFiltersEl.innerHTML = '';
+        
+        // Only show active tag in the filters section
+        if (activeTagAlias) {
+            const filterEl = document.createElement('div');
+            filterEl.className = 's4y-active-filter';
+            filterEl.innerHTML = `
+                <span>${activeTagName || activeTagAlias}</span>
+                <button class="s4y-remove-filter" data-filter-type="tag">&times;</button>
+            `;
+            activeFiltersEl.appendChild(filterEl);
+            
+            // Add a heading if there are any active filters
+            if (activeFiltersEl.children.length > 0) {
+                const heading = document.createElement('h3');
+                heading.textContent = 'Filter';
+                activeFiltersEl.insertBefore(heading, activeFiltersEl.firstChild);
+            }
+        }
+    }
+    function renderResults(duration = 0) {
+        console.log('renderResults called with duration:', duration);
+        console.log('Current results:', JSON.stringify(currentResults, null, 2)); // Debug log
+        
+        const durationText = duration > 0 ? ` (${Math.round(duration)} ms)` : '';
+        const resultText = `${currentResults.length} Treffer${durationText}`;
+        console.log('Setting results count to:', resultText);
+        resultsCountEl.textContent = resultText;
+        
+        if (currentResults.length === 0) {
+            resultsContainer.innerHTML = '<div class="s4y-no-results">Keine Ergebnisse</div>';
+            return;
+        }
+        
+        resultsContainer.innerHTML = '';
+        currentResults.forEach(r => {
+            const div = document.createElement('div');
+            
+            // Add 'featured' class if the item is featured
+            const isFeatured = (typeof r.is_featured !== 'undefined') ? 
+                (r.is_featured === true || r.is_featured === 'true' || r.is_featured === 1) : false;
+                
+            console.log('Rendering result:', r.title, 'is_featured:', isFeatured, 'raw value:', r.is_featured);
+            
+            div.className = 's4y-result-item' + (isFeatured ? ' featured' : '') + (r.css ? ' ' + r.css : '');
+            
+            // Handle content for both featured and non-featured items
+            let contentHtml = '';
+            if (isFeatured) {
+                // For featured items, use the full content if available
+                contentHtml = r.content_snippet ? 
+                    '<div class="s4y-result-content">' + r.content_snippet + '</div>' : '';
+            } else {
+                // For non-featured items, use the content_snippet
+                contentHtml = r.content_snippet ? 
+                    '<div class="s4y-result-snippet">' + r.content_snippet + '</div>' : '';
+            }
+                
+            div.innerHTML =
+                '<h4 class="s4y-result-title">' +
+                    '<a href="' + (r.url || '#') + '" target="_blank" rel="noopener">' + 
+                        (r.title || 'Ohne Titel') + 
+                    '</a>' +
+                '</h4>' +
+                contentHtml;
+                
+            resultsContainer.appendChild(div);
+        });
+    }
+
+    function handleCategoryClick(category) {
+        if (activeCategory === category) {
+            // Clicked on active category - remove filter
+            activeCategory = '';
+        } else {
+            // Set new category filter
+            activeCategory = category;
+        }
+        
+        updateUrl();
+        performSearch(currentQuery);
+    }
+    
+    function handleTagClick(tagAlias) {
+        if (tagAlias === undefined || tagAlias === null) {
+            return;
+        }
+        
+        // Convert to string and trim any whitespace
+        const newTagAlias = String(tagAlias).trim();
+        
+        if (activeTagAlias === newTagAlias) {
+            // Clicked on active tag - remove filter
+            activeTagAlias = '';
+            activeTagName = '';
+        } else {
+            // Clicked on different tag - set as filter
+            activeTagAlias = newTagAlias;
+            activeTagName = allTags[newTagAlias] || newTagAlias;
+        }
+        
+        updateUrl();
+        performSearch(currentQuery);
+    }
+    
+    function handleRemoveFilter(e) {
+        if (e.target.classList.contains('s4y-remove-filter')) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const filterType = e.target.dataset.filterType;
+            
+            if (filterType === 'tag') {
+                activeTagAlias = '';
+                activeTagName = '';
+            } else if (filterType === 'category') {
+                activeCategory = '';
+            }
+            
+            updateUrl();
+            performSearch(currentQuery);
+        }
+    }
+
+    // Initialize from URL
+    function initFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        currentQuery = urlParams.get('query') || '';
+        activeTagAlias = urlParams.get('tags') || '';
+        activeCategory = urlParams.get('category') || '';
+        urlParams.set('rootPage', {{ rootPage }});
+        urlParams.set('featuredCategory', {{ featuredCategory }});
+        
+        inputEl.value = currentQuery;
+        if (currentQuery || activeTagAlias || activeCategory) {
+            performSearch(currentQuery);
+        }
+    }
+    
+    // Handle popstate (back/forward navigation)
+    window.addEventListener('popstate', initFromUrl);
+    
+    // Handle remove filter button clicks
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.s4y-remove-filter')) {
+            handleRemoveFilter(e);
+        }
+    });
+    
+    // Initialize filter toggle
+    const filterToggle = document.querySelector('.s4y-filter-toggle');
+    const categoriesSection = document.querySelector('.s4y-categories');
+    
+    // Set initial state
+    if (window.innerWidth < 600) {
+        categoriesSection.classList.add('hidden');
+    } else {
+        categoriesSection.classList.remove('hidden');
+    }
+    
+    // Toggle filter visibility
+    filterToggle.addEventListener('click', () => {
+        categoriesSection.classList.toggle('hidden');
+        
+        // Force reflow to ensure the transition works
+        void categoriesSection.offsetHeight;
+        
+        // Toggle max-height for smooth animation
+        if (categoriesSection.classList.contains('hidden')) {
+            categoriesSection.style.maxHeight = '0';
+        } else {
+            categoriesSection.style.maxHeight = '80vh';
+        }
+    });
+    
+    // Update on window resize
+    function updateCategoriesVisibility() {
+        if (window.innerWidth >= 600) {
+            categoriesSection.classList.remove('hidden');
+            categoriesSection.style.maxHeight = '80vh';
+        } else if (!categoriesSection.classList.contains('hidden')) {
+            categoriesSection.style.maxHeight = '80vh';
+        } else {
+            categoriesSection.style.maxHeight = '0';
+        }
+    }
+    
+    // Initial update
+    updateCategoriesVisibility();
+    
+    // Update on resize with debounce
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateCategoriesVisibility, 100);
+    });
+
+    // Initialize
+    initFromUrl();
+
+    function getCurrentTag() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('tag') || '';
+    }
+
+    function processTags(tagsData) {
+        // Handle different tag data formats:
+        // 1. Array of strings: ['tag1', 'tag2']
+        // 2. Object with aliases as keys: {alias1: 'name1', alias2: 'name2'}
+        // 3. Array of objects: [{alias: 'a1', name: 'n1'}, {alias: 'a2', name: 'n2'}]
+        
+        if (Array.isArray(tagsData)) {
+            // If it's an array of strings
+            if (typeof tagsData[0] === 'string') {
+                const result = {};
+                tagsData.forEach(tag => {
+                    result[tag] = tag; // Use the tag as both key and value
+                });
+                return result;
+            }
+            // If it's an array of objects
+            if (typeof tagsData[0] === 'object') {
+                const result = {};
+                tagsData.forEach(tag => {
+                    if (tag.alias && tag.name) {
+                        result[tag.alias] = tag.name;
+                    } else if (tag.id || tag.name) {
+                        // Fallback for different object structures
+                        const alias = tag.alias || tag.id || tag.name;
+                        result[alias] = tag.name || alias;
+                    }
+                });
+                return result;
+            }
+        } else if (typeof tagsData === 'object' && tagsData !== null) {
+            // It's already in the correct format
+            return {...tagsData};
+        }
+        return {};
+    }
+
+    function performSearch(query) {
+        console.log('performSearch called with query:', query);
+        currentQuery = query || '';
+        
+        // Update URL without page reload
+        updateUrl();
+        
+        // Show loading state
+        console.log('Showing loading state');
+        resultsContainer.innerHTML = '<div class="s4y-no-results">Suche läuft...</div>';
+        
+        // Build URL with query, tag filter, and category filter
+        let url = '/search4you/search?query=' + encodeURIComponent(query);
+        if (activeTagAlias) {
+            url += '&tags=' + encodeURIComponent(activeTagAlias);
+        }
+        if (activeCategory) {
+            url += '&category=' + encodeURIComponent(activeCategory);
+        }
+
+        // add RootPage
+        url += '&rootPage=' + encodeURIComponent(rootPage);
+
+        // add featuredCategory
+        url += '&featuredCategory=' + encodeURIComponent(featuredCategory);
+        
+        // Start timing
+        const startTime = performance.now();
+        
+        // Perform search
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // Calculate duration in milliseconds
+                const duration = performance.now() - startTime;
+                console.log('Search completed in', duration, 'ms');
+                
+                currentResults = data.results || [];
+                console.log('Found', currentResults.length, 'results');
+                allTags = processTags(data.tags || []);
+                allCategories = data.categories || [];
+                
+                // Update UI with search duration
+                console.log('Rendering UI components');
+                renderCategories();
+                renderTags();
+                renderResults(duration);
+                renderActiveFilters();
+                
+                // Update URL with new state
+                updateUrl();
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                resultsContainer.innerHTML = '<div class="s4y-no-results">Fehler bei der Suche</div>';
+                // Show duration even on error
+                const duration = performance.now() - startTime;
+                resultsCountEl.textContent = `0 Treffer (${Math.round(duration)} ms)`;
+            });
+    }
+
+    // Input handlers mit Debounce (300 ms)
+    function debounce(fn, delay) {
+        let timeoutId;
+        return function(...args) {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    const handleInput = debounce(() => {
+        updateUrl();
+        performSearch(inputEl.value.trim());
+    }, 300);
+
+    inputEl.addEventListener('input', handleInput);
+    
+    // Enter Key handler
+    inputEl.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Enter') {
+            ev.preventDefault();
+            updateUrl();
+            performSearch(inputEl.value.trim());
+        }
+    });
+    
+    // Search icon click handler
+    document.querySelector('.s4y-search-icon').addEventListener('click', function() {
+        updateUrl();
+        performSearch(inputEl.value.trim());
+    });
+})();
+</script>

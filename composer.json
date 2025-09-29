@@ -1,0 +1,45 @@
+{
+    "name": "c4y/search4you",
+    "version": "1.0.0",
+    "type": "contao-bundle",
+    "description": "Contao 4/5 Bundle",
+    "homepage": "https://contao4you.de",
+    "license": "LGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Oliver Lohoff",
+            "homepage": "https://contao4you.de"
+        }
+    ],
+    "require": {
+        "php": "^8.0",
+        "contao/core-bundle": "^5.3",
+        "codefog/tags-bundle": "^3.3",
+        "loupe/loupe": "^0.12.2"
+    },
+    "conflict": {
+        "contao/manager-plugin": "<2.0 || >=3.0"
+    },
+    "extra": {
+        "contao-manager-plugin": "C4Y\\Search4you\\ContaoManager\\Plugin"
+    },
+    "autoload": {
+        "psr-4": {
+            "C4Y\\Search4you\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "C4Y\\Search4you\\": "tests/"
+        }
+    },
+    "support": {
+        "issues": "https://github.com/c4y/search4you/issues",
+        "source": "https://github.com/c4y/search4you"
+    },
+    "scripts": {
+        "cs-fixer": [
+            "vendor/bin/ecs check src/ tests/ --fix --ansi"
+        ]
+    }
+}

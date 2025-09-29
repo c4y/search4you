@@ -1,0 +1,20 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    C4Y\Search4you\Controller\:
+        public: true
+        resource: ../src/Controller
+        tags: ['controller.service_arguments']
+
+    C4Y\Search4you\EventListener\:
+        public: true
+        resource: ../src/EventListener
+        tags: ['controller.service_arguments']
+
+    C4Y\Search4you\Service\LoupeEngineFactory:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+            $environment: '%kernel.environment%'
