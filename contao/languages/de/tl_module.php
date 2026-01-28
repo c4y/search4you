@@ -16,3 +16,8 @@ $GLOBALS['TL_LANG']['tl_module']['search_lite_rootPage'] = [
     'Suche - Root-Seite',
     'In welchem Seitenbaum soll gesucht werden?',
 ];
+
+$GLOBALS['TL_LANG']['tl_module']['search_lite_perPage'] = [
+    'Einträge pro Seite',
+    'Anzahl der Treffer, die pro Seite angezeigt werden (0 = keine Paginierung)',
+];

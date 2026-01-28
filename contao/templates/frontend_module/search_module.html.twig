@@ -5,9 +5,60 @@
     - Result list limited to data-limit (passed from backend)
 #}
 
-{% set resultLimit = limit|default(10) %}
+{% set resultLimit = perPage|default(10) %}
 
 <style>
+/* Pagination */
+.sl-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.sl-pagination-btn {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+.sl-pagination-btn:hover:not(:disabled) {
+    background-color: #f0f0f0;
+    border-color: #ccc;
+}
+
+.sl-pagination-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.sl-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sl-pagination-dots {
+    color: #666;
+    padding: 0.5rem;
+}
+
+.sl-pagination-info {
+    text-align: center;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #666;
+}
 /* Container layout */
 .sl-search-wrapper {
     display: grid;
@@ -278,6 +329,7 @@
         </div>
         <div class="sl-results-count" id="sl-results-count"></div>
         <div id="sl-results-container"></div>
+        <div id="sl-pagination-container"></div>
     </div>
 </div>
 
@@ -303,17 +355,23 @@
     let activeTagName = ''; // Store the active tag name for display
     let activeCategory = ''; // Store the active category for filtering
     let currentQuery = '';
+    let currentPage = 1; // Current page for pagination
+    let paginationData = null; // Pagination data from server
 
     function updateUrl() {
         const params = new URLSearchParams();
         if (currentQuery) params.set('query', currentQuery);
-        
+
         if (activeTagAlias && activeTagAlias !== '0') {
             params.set('tags', activeTagAlias);
         }
-        
+
         if (activeCategory) {
             params.set('category', activeCategory);
+        }
+
+        if (currentPage > 1) {
+            params.set('page', currentPage);
         }
 
         const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
@@ -441,50 +499,147 @@
     function renderResults(duration = 0) {
         console.log('renderResults called with duration:', duration);
         console.log('Current results:', JSON.stringify(currentResults, null, 2)); // Debug log
-        
+
         const durationText = duration > 0 ? ` (${Math.round(duration)} ms)` : '';
-        const resultText = `${currentResults.length} Treffer${durationText}`;
+        const totalItems = paginationData ? paginationData.total_items : currentResults.length;
+        const resultText = `${totalItems} Treffer${durationText}`;
         console.log('Setting results count to:', resultText);
         resultsCountEl.textContent = resultText;
-        
+
         if (currentResults.length === 0) {
             resultsContainer.innerHTML = '<div class="sl-no-results">Keine Ergebnisse</div>';
             return;
         }
-        
+
         resultsContainer.innerHTML = '';
-        currentResults.slice(0, limit).forEach(r => {
+        currentResults.forEach(r => {
             const div = document.createElement('div');
-            
+
             // Add 'featured' class if the item is featured
-            const isFeatured = (typeof r.is_featured !== 'undefined') ? 
+            const isFeatured = (typeof r.is_featured !== 'undefined') ?
                 (r.is_featured === true || r.is_featured === 'true' || r.is_featured === 1) : false;
-                
+
             console.log('Rendering result:', r.title, 'is_featured:', isFeatured, 'raw value:', r.is_featured);
-            
+
             div.className = 'sl-result-item' + (isFeatured ? ' featured' : '');
-            
+
             // Handle content for both featured and non-featured items
             let contentHtml = '';
             if (isFeatured) {
                 // For featured items, use the full content if available
-                contentHtml = r.content_snippet ? 
+                contentHtml = r.content_snippet ?
                     '<div class="sl-result-content">' + r.content_snippet + '</div>' : '';
             } else {
                 // For non-featured items, use the content_snippet
-                contentHtml = r.content_snippet ? 
+                contentHtml = r.content_snippet ?
                     '<div class="sl-result-snippet">' + r.content_snippet + '</div>' : '';
             }
-                
+
             div.innerHTML =
                 '<h4 class="sl-result-title">' +
-                    '<a href="' + (r.url || '#') + '" target="_blank" rel="noopener">' + 
-                        (r.title || 'Ohne Titel') + 
+                    '<a href="' + (r.url || '#') + '" target="_blank" rel="noopener">' +
+                        (r.title || 'Ohne Titel') +
                     '</a>' +
                 '</h4>' +
                 contentHtml;
-                
+
             resultsContainer.appendChild(div);
+        });
+    }
+
+    function renderPagination() {
+        const paginationContainer = document.getElementById('sl-pagination-container');
+        console.log('renderPagination called:', { paginationContainer, paginationData });
+        
+        if (!paginationContainer) {
+            console.log('Pagination container not found');
+            return;
+        }
+        
+        if (!paginationData) {
+            console.log('No pagination data available');
+            paginationContainer.innerHTML = '';
+            return;
+        }
+        
+        const { current_page, total_pages, total_items } = paginationData;
+        console.log('Pagination data:', { current_page, total_pages, total_items });
+        
+        // Only show pagination if there's more than one page
+        if (total_pages <= 1) {
+            console.log('Pagination hidden - only one page');
+            paginationContainer.innerHTML = '';
+            return;
+        }
+
+        const maxVisiblePages = 5;
+
+        let html = '<div class="sl-pagination">';
+
+        // Previous button
+        html += `<button class="sl-pagination-btn" data-page="${current_page - 1}" ${current_page === 1 ? 'disabled' : ''}>←</button>`;
+
+        // Calculate visible page range
+        let startPage = 1;
+        let endPage = total_pages;
+
+        if (total_pages > maxVisiblePages) {
+            const halfVisible = Math.floor(maxVisiblePages / 2);
+            if (current_page <= halfVisible) {
+                startPage = 1;
+                endPage = maxVisiblePages;
+            } else if (current_page >= total_pages - halfVisible) {
+                startPage = total_pages - maxVisiblePages + 1;
+                endPage = total_pages;
+            } else {
+                startPage = current_page - halfVisible;
+                endPage = current_page + halfVisible;
+            }
+        }
+
+        // First page + ellipsis
+        if (startPage > 1) {
+            html += `<button class="sl-pagination-btn ${1 === current_page ? 'active' : ''}" data-page="1">1</button>`;
+            if (startPage > 2) {
+                html += '<span class="sl-pagination-dots">...</span>';
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="sl-pagination-btn ${i === current_page ? 'active' : ''}" data-page="${i}">${i}</button>`;
+        }
+
+        // Last page + ellipsis
+        if (endPage < total_pages) {
+            if (endPage < total_pages - 1) {
+                html += '<span class="sl-pagination-dots">...</span>';
+            }
+            html += `<button class="sl-pagination-btn ${total_pages === current_page ? 'active' : ''}" data-page="${total_pages}">${total_pages}</button>`;
+        }
+
+        // Next button
+        html += `<button class="sl-pagination-btn" data-page="${current_page + 1}" ${current_page === total_pages ? 'disabled' : ''}>→</button>`;
+
+        html += '</div>';
+
+        // Add page info
+        const fromItem = (current_page - 1) * paginationData.per_page + 1;
+        const toItem = Math.min(current_page * paginationData.per_page, total_items);
+        html += `<div class="sl-pagination-info">Einträge ${fromItem} - ${toItem} von ${total_items}</div>`;
+
+        paginationContainer.innerHTML = html;
+
+        // Add click handlers
+        paginationContainer.querySelectorAll('.sl-pagination-btn:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = parseInt(e.target.dataset.page, 10);
+                if (page && page !== currentPage) {
+                    currentPage = page;
+                    performSearch(currentQuery);
+                }
+            });
         });
     }
 
@@ -496,7 +651,8 @@
             // Set new category filter
             activeCategory = category;
         }
-        
+
+        currentPage = 1; // Reset to first page on filter change
         updateUrl();
         performSearch(currentQuery);
     }
@@ -505,10 +661,10 @@
         if (tagAlias === undefined || tagAlias === null) {
             return;
         }
-        
+
         // Convert to string and trim any whitespace
         const newTagAlias = String(tagAlias).trim();
-        
+
         if (activeTagAlias === newTagAlias) {
             // Clicked on active tag - remove filter
             activeTagAlias = '';
@@ -518,7 +674,8 @@
             activeTagAlias = newTagAlias;
             activeTagName = allTags[newTagAlias] || newTagAlias;
         }
-        
+
+        currentPage = 1; // Reset to first page on filter change
         updateUrl();
         performSearch(currentQuery);
     }
@@ -527,16 +684,17 @@
         if (e.target.classList.contains('sl-remove-filter')) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             const filterType = e.target.dataset.filterType;
-            
+
             if (filterType === 'tag') {
                 activeTagAlias = '';
                 activeTagName = '';
             } else if (filterType === 'category') {
                 activeCategory = '';
             }
-            
+
+            currentPage = 1; // Reset to first page on filter change
             updateUrl();
             performSearch(currentQuery);
         }
@@ -548,9 +706,10 @@
         currentQuery = urlParams.get('query') || '';
         activeTagAlias = urlParams.get('tags') || '';
         activeCategory = urlParams.get('category') || '';
+        currentPage = parseInt(urlParams.get('page'), 10) || 1;
         urlParams.set('rootPage', {{ rootPage }});
         urlParams.set('featuredCategory', {{ featuredCategory }});
-        
+
         inputEl.value = currentQuery;
         if (currentQuery || activeTagAlias || activeCategory) {
             performSearch(currentQuery);
@@ -662,15 +821,15 @@
     function performSearch(query) {
         console.log('performSearch called with query:', query);
         currentQuery = query || '';
-        
+
         // Update URL without page reload
         updateUrl();
-        
+
         // Show loading state
         console.log('Showing loading state');
         resultsContainer.innerHTML = '<div class="sl-no-results">Suche läuft...</div>';
-        
-        // Build URL with query, tag filter, and category filter
+
+        // Build URL with query, tag filter, category filter, and pagination
         let url = '/search-lite/search?query=' + encodeURIComponent(query);
         if (activeTagAlias) {
             url += '&tags=' + encodeURIComponent(activeTagAlias);
@@ -684,10 +843,14 @@
 
         // add featuredCategory
         url += '&featuredCategory=' + encodeURIComponent(featuredCategory);
-        
+
+        // add pagination parameters
+        url += '&page=' + encodeURIComponent(currentPage);
+        url += '&perPage=' + encodeURIComponent(limit);
+
         // Start timing
         const startTime = performance.now();
-        
+
         // Perform search
         fetch(url)
             .then(response => response.json())
@@ -695,19 +858,21 @@
                 // Calculate duration in milliseconds
                 const duration = performance.now() - startTime;
                 console.log('Search completed in', duration, 'ms');
-                
+
                 currentResults = data.results || [];
+                paginationData = data.pagination || null;
                 console.log('Found', currentResults.length, 'results');
                 allTags = processTags(data.tags || []);
                 allCategories = data.categories || [];
-                
+
                 // Update UI with search duration
                 console.log('Rendering UI components');
                 renderCategories();
                 renderTags();
                 renderResults(duration);
                 renderActiveFilters();
-                
+                renderPagination();
+
                 // Update URL with new state
                 updateUrl();
             })
@@ -717,6 +882,8 @@
                 // Show duration even on error
                 const duration = performance.now() - startTime;
                 resultsCountEl.textContent = `0 Treffer (${Math.round(duration)} ms)`;
+                paginationData = null;
+                renderPagination();
             });
     }
 
@@ -730,6 +897,7 @@
     }
 
     const handleInput = debounce(() => {
+        currentPage = 1; // Reset to first page on new search
         updateUrl();
         performSearch(inputEl.value.trim());
     }, 300);

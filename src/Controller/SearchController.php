@@ -130,6 +130,8 @@ class SearchController extends AbstractController
         $categoryFilter = trim($request->query->get('category', ''));
         $rootPage = $request->query->get('rootPage', '');
         $featuredCategory = $request->query->get('featuredCategory', '');
+        $page = (int) $request->query->get('page', 1);
+        $perPage = (int) $request->query->get('perPage', 10);
         
         // Wenn weder Query noch Tag vorhanden ist, leere Ergebnisse zurückgeben
         if (empty($query) && empty($tagsFilter) && empty($categoryFilter)) {
@@ -145,17 +147,23 @@ class SearchController extends AbstractController
         try {
             $engine = $this->getLoupeEngine();
 
+            // Berechne Paginierungsparameter für Loupe
+            $hitsPerPage = $perPage > 0 ? $perPage : 100;
+            $currentPage = $page > 0 ? $page : 1;
+
             // Suche mit Hervorhebung konfigurieren
             // Verwende search für die Suche, aber content für die Anzeige
             $searchParams = SearchParameters::create()
                 ->withQuery($query)
                 ->withAttributesToSearchOn(['title', 'search'])  // Explicitly set searchable fields
                 ->withAttributesToHighlight(['title', 'search'], '<em>', '</em>')
-                ->withSort(['is_featured:desc', 'sorting:asc']);
+                ->withSort(['is_featured:desc', 'sorting:asc'])
+                ->withHitsPerPage($hitsPerPage)
+                ->withPage($currentPage);
 
             // nur in einem Seitenbaum und featured Items einer Kategorie
             $filter = "(origin='page' AND root=" . $rootPage . ") OR (origin='featured' AND root=" . $featuredCategory . ")";
-                
+
             // Tag-Filter anwenden, falls vorhanden
             if (!empty($tagsFilter)) {
                 $filter .= " AND tags = '" . $tagsFilter . "'";
@@ -164,7 +172,7 @@ class SearchController extends AbstractController
             // Kategorie-Filter anwenden, falls vorhanden
             if (!empty($categoryFilter)) {
                 $filter .= " AND category = '" . $categoryFilter . "'";
-            }   
+            }
 
             $searchParams = $searchParams->withFilter($filter);
             $searchResult = $engine->search($searchParams);
@@ -231,15 +239,25 @@ class SearchController extends AbstractController
             // Doppelte Tags und Kategorien entfernen und leere Einträge filtern
             $uniqueTags = array_values(array_unique(array_filter(array_map('trim', $allTags))));
             $uniqueCategories = array_values(array_unique(array_filter(array_map('trim', $allCategories))));
-            
+
+            // Paginierungsdaten aus Loupe-Ergebnis
+            $totalHits = $resultArray['totalHits'] ?? 0;
+            $totalPages = $perPage > 0 ? (int) ceil($totalHits / $perPage) : 1;
+
             // JSON-Antwort vorbereiten und UTF-8 sicherstellen
             $responseData = [
                 'query' => $query,
                 'filter_tags' => $tagsFilter ?: null,
-                'results' => $this->ensureUtf8($formattedResults), 
-                'total_hits' => $resultArray['totalHits'] ?? 0,
+                'results' => $this->ensureUtf8($formattedResults),
+                'total_hits' => $totalHits,
                 'tags' => $this->ensureUtf8($uniqueTags),
-                'categories' => $this->ensureUtf8($uniqueCategories)
+                'categories' => $this->ensureUtf8($uniqueCategories),
+                'pagination' => [
+                    'current_page' => $page > 0 ? $page : 1,
+                    'per_page' => $perPage > 0 ? $perPage : $totalHits,
+                    'total_pages' => $totalPages,
+                    'total_items' => $totalHits
+                ]
             ];
             
             // JSON-Antwort mit korrekter Kodierung zurückgeben
