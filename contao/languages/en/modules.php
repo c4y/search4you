@@ -7,11 +7,11 @@
  */
 
 $GLOBALS['TL_LANG']['FMD']['search_module'] = [
-    'Suchmaschine (Loupe)',
-    'Ein Suchmodul basierend auf der Loupe-Suchbibliothek.',
+    'Search Engine (Loupe)',
+    'A search module based on the Loupe search library.',
 ];
 
 $GLOBALS['TL_LANG']['MOD']['search_lite_featured_items'] = [
-    'Suche - Top-Einträge',
-    'Verwalten Sie hervorgehobene Suchergebnisse, die bei bestimmten Suchbegriffen angezeigt werden.',
+    'Search - Top Entries',
+    'Manage featured search results that appear for specific search terms.',
 ];

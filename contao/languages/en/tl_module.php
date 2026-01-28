@@ -7,16 +7,16 @@
  */
 
 $GLOBALS['TL_LANG']['tl_module']['search_lite_featured_category'] = [
-    'Suche - Top-Treffer',
-    'Wählen Sie eine Kategorie aus, um hervorgehobene Treffer für dieses Modul zu definieren.',
+    'Search - Featured Results',
+    'Select a category to define featured results for this module.',
 ];
 
 $GLOBALS['TL_LANG']['tl_module']['search_lite_rootPage'] = [
-    'Suche - Root-Seite',
-    'In welchem Seitenbaum soll gesucht werden?',
+    'Search - Root Page',
+    'In which page tree should the search be performed?',
 ];
 
 $GLOBALS['TL_LANG']['tl_module']['search_lite_perPage'] = [
-    'Einträge pro Seite',
-    'Anzahl der Treffer, die pro Seite angezeigt werden (0 = keine Paginierung)',
+    'Items per page',
+    'Number of results to display per page (0 = no pagination)',
 ];

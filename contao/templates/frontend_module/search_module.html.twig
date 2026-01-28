@@ -304,10 +304,10 @@
 }
 </style>
 
-<div class="sl-filter-toggle">Filter (ein-/ausblenden)</div>
+<div class="sl-filter-toggle">{{ 'MSC.search_lite_filter_toggle'|trans({}, 'contao_default') }}</div>
 <div class="sl-search-wrapper" data-limit="{{ resultLimit }}">
     <div class="sl-categories">
-        <h3>Kategorien</h3>
+        <h3>{{ 'MSC.search_lite_categories'|trans({}, 'contao_default') }}</h3>
         <div id="sl-category-list">
             <!-- Available categories will be shown here -->
         </div>
@@ -316,7 +316,7 @@
             <!-- Active filters will be shown here -->
         </div>
         
-        <h3>Verfügbare Tags</h3>
+        <h3>{{ 'MSC.search_lite_available_tags'|trans({}, 'contao_default') }}</h3>
         <div id="sl-tag-list">
             <!-- Available tags will be shown here -->
         </div>
@@ -324,7 +324,7 @@
 
     <div class="sl-main">
         <div class="sl-search-bar">
-            <input type="text" id="sl-search-input" class="sl-search-input" placeholder="Suche…" />
+            <input type="text" id="sl-search-input" class="sl-search-input" placeholder="{{ 'MSC.search_lite_placeholder'|trans({}, 'contao_default') }}" />
             <span class="sl-search-icon">🔍</span>
         </div>
         <div class="sl-results-count" id="sl-results-count"></div>
@@ -347,6 +347,22 @@
     const tagListEl = document.getElementById('sl-tag-list');
     const categoryListEl = document.getElementById('sl-category-list');
     const activeFiltersEl = document.getElementById('sl-active-filters');
+
+    // Translations
+    const translations = {
+        noResults: '{{ 'MSC.search_lite_no_results'|trans({}, 'contao_default') }}',
+        searching: '{{ 'MSC.search_lite_searching'|trans({}, 'contao_default') }}',
+        searchError: '{{ 'MSC.search_lite_search_error'|trans({}, 'contao_default') }}',
+        noTitle: '{{ 'MSC.search_lite_no_title'|trans({}, 'contao_default') }}',
+        hits: '{{ 'MSC.search_lite_hits'|trans({}, 'contao_default') }}',
+        hitsDuration: '{{ 'MSC.search_lite_hits_duration'|trans({}, 'contao_default') }}',
+        paginationInfo: '{{ 'MSC.search_lite_pagination_info'|trans({}, 'contao_default') }}',
+        filter: '{{ 'MSC.search_lite_filter'|trans({}, 'contao_default') }}',
+        noCategories: '{{ 'MSC.search_lite_no_categories'|trans({}, 'contao_default') }}',
+        noCategoriesAvailable: '{{ 'MSC.search_lite_no_categories_available'|trans({}, 'contao_default') }}',
+        noTags: '{{ 'MSC.search_lite_no_tags'|trans({}, 'contao_default') }}',
+        noMoreTags: '{{ 'MSC.search_lite_no_more_tags'|trans({}, 'contao_default') }}'
+    };
 
     let currentResults = [];
     let allTags = {}; // Store tags as {alias: name} pairs
@@ -383,7 +399,7 @@
         categoryListEl.innerHTML = '';
         
         if (!allCategories || allCategories.length === 0) {
-            categoryListEl.innerHTML = '<div class="sl-no-results">Keine Kategorien gefunden</div>';
+            categoryListEl.innerHTML = '<div class="sl-no-results">' + translations.noCategories + '</div>';
             return;
         }
         
@@ -417,7 +433,7 @@
             .sort((a, b) => a.localeCompare(b));
             
         if (filteredCategories.length === 0) {
-            categoryListEl.innerHTML = '<div class="sl-no-results">Keine Kategorien verfügbar</div>';
+            categoryListEl.innerHTML = '<div class="sl-no-results">' + translations.noCategoriesAvailable + '</div>';
             return;
         }
         
@@ -441,7 +457,7 @@
         tagListEl.innerHTML = '';
         
         if (!allTags || Object.keys(allTags).length === 0) {
-            tagListEl.innerHTML = '<div class="sl-no-results">Keine Tags gefunden</div>';
+            tagListEl.innerHTML = '<div class="sl-no-results">' + translations.noTags + '</div>';
             return;
         }
         
@@ -452,7 +468,7 @@
             .sort((a, b) => a.name.localeCompare(b.name));
         
         if (sortedTags.length === 0) {
-            tagListEl.innerHTML = '<div class="sl-no-results">Keine weiteren Tags verfügbar</div>';
+            tagListEl.innerHTML = '<div class="sl-no-results">' + translations.noMoreTags + '</div>';
             return;
         }
         
@@ -491,7 +507,7 @@
             // Add a heading if there are any active filters
             if (activeFiltersEl.children.length > 0) {
                 const heading = document.createElement('h3');
-                heading.textContent = 'Filter';
+                heading.textContent = translations.filter;
                 activeFiltersEl.insertBefore(heading, activeFiltersEl.firstChild);
             }
         }
@@ -502,12 +518,12 @@
 
         const durationText = duration > 0 ? ` (${Math.round(duration)} ms)` : '';
         const totalItems = paginationData ? paginationData.total_items : currentResults.length;
-        const resultText = `${totalItems} Treffer${durationText}`;
+        const resultText = translations.hits.replace('%s', totalItems) + durationText;
         console.log('Setting results count to:', resultText);
         resultsCountEl.textContent = resultText;
 
         if (currentResults.length === 0) {
-            resultsContainer.innerHTML = '<div class="sl-no-results">Keine Ergebnisse</div>';
+            resultsContainer.innerHTML = '<div class="sl-no-results">' + translations.noResults + '</div>';
             return;
         }
 
@@ -538,7 +554,7 @@
             div.innerHTML =
                 '<h4 class="sl-result-title">' +
                     '<a href="' + (r.url || '#') + '" target="_blank" rel="noopener">' +
-                        (r.title || 'Ohne Titel') +
+                        (r.title || translations.noTitle) +
                     '</a>' +
                 '</h4>' +
                 contentHtml;
@@ -626,7 +642,7 @@
         // Add page info
         const fromItem = (current_page - 1) * paginationData.per_page + 1;
         const toItem = Math.min(current_page * paginationData.per_page, total_items);
-        html += `<div class="sl-pagination-info">Einträge ${fromItem} - ${toItem} von ${total_items}</div>`;
+        html += '<div class="sl-pagination-info">' + translations.paginationInfo.replace('%s', fromItem).replace('%s', toItem).replace('%s', total_items) + '</div>';
 
         paginationContainer.innerHTML = html;
 
@@ -827,7 +843,7 @@
 
         // Show loading state
         console.log('Showing loading state');
-        resultsContainer.innerHTML = '<div class="sl-no-results">Suche läuft...</div>';
+        resultsContainer.innerHTML = '<div class="sl-no-results">' + translations.searching + '</div>';
 
         // Build URL with query, tag filter, category filter, and pagination
         let url = '/search-lite/search?query=' + encodeURIComponent(query);
@@ -878,10 +894,10 @@
             })
             .catch(error => {
                 console.error('Search error:', error);
-                resultsContainer.innerHTML = '<div class="sl-no-results">Fehler bei der Suche</div>';
+                resultsContainer.innerHTML = '<div class="sl-no-results">' + translations.searchError + '</div>';
                 // Show duration even on error
                 const duration = performance.now() - startTime;
-                resultsCountEl.textContent = `0 Treffer (${Math.round(duration)} ms)`;
+                resultsCountEl.textContent = translations.hitsDuration.replace('%s', '0').replace('%s', Math.round(duration));
                 paginationData = null;
                 renderPagination();
             });

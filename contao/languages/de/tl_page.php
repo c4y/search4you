@@ -6,13 +6,5 @@
  * @license    LGPL-3.0-or-later
  */
 
- 
-$GLOBALS['TL_LANG']['tl_page']['search_tags'] = [
-    'Tags', 
-    'Hier können Sie verschiedene "Tags" für die Suche hinzufügen.',
-];
-
-$GLOBALS['TL_LANG']['tl_page']['search_category'] = [
-    'Kategorie', 
-    'Hier können Sie eine "Kategorie" für die Suche hinzufügen. Die Kategorie wird priorisiert ausgegeben.',
-];
+$GLOBALS['TL_LANG']['tl_page']['search_category'] = ['Such-Kategorie', 'Weisen Sie dieser Seite eine Kategorie zu, um die Suche zu filtern.'];
+$GLOBALS['TL_LANG']['tl_page']['search_tags'] = ['Such-Tags', 'Fügen Sie Tags hinzu, um die Suche zu verfeinern (max. 5).'];
