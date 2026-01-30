@@ -130,7 +130,7 @@ class SearchController extends AbstractController
         $categoryFilter = trim($request->query->get('category', ''));
         $rootPage = $request->query->get('rootPage', '');
         $featuredCategory = $request->query->get('featuredCategory', '');
-        $page = (int) $request->query->get('page', 1);
+        $page = (int) $request->query->get('lpage', 1);
         $perPage = (int) $request->query->get('perPage', 10);
         
         // Wenn weder Query noch Tag vorhanden ist, leere Ergebnisse zurückgeben

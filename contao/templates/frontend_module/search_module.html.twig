@@ -335,6 +335,18 @@
 
 <script>
 (function() {
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    if (window.location.hash) {
+        history.replaceState({}, '', window.location.pathname + window.location.search);
+    }
+
+    window.addEventListener('hashchange', () => {
+        history.replaceState({}, '', window.location.pathname + window.location.search);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    });
     const wrapper = document.querySelector('.sl-search-wrapper');
     if (!wrapper) return;
 
@@ -356,6 +368,8 @@
     let activeCategory = ''; // Store the active category for filtering
     let currentQuery = '';
     let currentPage = 1; // Current page for pagination
+    let shouldScrollToTop = false;
+    let instantScrollToTop = false;
     let paginationData = null; // Pagination data from server
 
     function updateUrl() {
@@ -371,7 +385,7 @@
         }
 
         if (currentPage > 1) {
-            params.set('page', currentPage);
+            params.set('lpage', currentPage);
         }
 
         const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
@@ -637,6 +651,8 @@
                 const page = parseInt(e.target.dataset.page, 10);
                 if (page && page !== currentPage) {
                     currentPage = page;
+                    instantScrollToTop = true;
+                    wrapper.scrollIntoView({ behavior: 'auto', block: 'start' });
                     performSearch(currentQuery);
                 }
             });
@@ -706,7 +722,7 @@
         currentQuery = urlParams.get('query') || '';
         activeTagAlias = urlParams.get('tags') || '';
         activeCategory = urlParams.get('category') || '';
-        currentPage = parseInt(urlParams.get('page'), 10) || 1;
+        currentPage = parseInt(urlParams.get('lpage'), 10) || 1;
         urlParams.set('rootPage', {{ rootPage }});
         urlParams.set('featuredCategory', {{ featuredCategory }});
 
@@ -845,7 +861,7 @@
         url += '&featuredCategory=' + encodeURIComponent(featuredCategory);
 
         // add pagination parameters
-        url += '&page=' + encodeURIComponent(currentPage);
+        url += '&lpage=' + encodeURIComponent(currentPage);
         url += '&perPage=' + encodeURIComponent(limit);
 
         // Start timing
@@ -872,6 +888,13 @@
                 renderResults(duration);
                 renderActiveFilters();
                 renderPagination();
+
+                if (instantScrollToTop) {
+                    instantScrollToTop = false;
+                } else if (shouldScrollToTop) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    shouldScrollToTop = false;
+                }
 
                 // Update URL with new state
                 updateUrl();
