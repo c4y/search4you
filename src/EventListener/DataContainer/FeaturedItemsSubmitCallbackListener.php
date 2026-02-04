@@ -10,6 +10,7 @@
 namespace C4Y\SearchLiteBundle\EventListener\DataContainer;
 
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
+use Contao\CoreBundle\InsertTag\InsertTagParser;
 use Contao\DataContainer;
 use Doctrine\DBAL\Connection;
 use C4Y\SearchLiteBundle\Service\LoupeEngineFactory;
@@ -19,14 +20,16 @@ class FeaturedItemsSubmitCallbackListener
 {
     private Connection $db;
     private LoupeEngineFactory $loupeEngineFactory;
+    private InsertTagParser $insertTagParser;
 
     /**
      * @var string
      */
-    public function __construct(Connection $db, LoupeEngineFactory $loupeEngineFactory)
+    public function __construct(Connection $db, LoupeEngineFactory $loupeEngineFactory, InsertTagParser $insertTagParser)
     {
         $this->db = $db;
         $this->loupeEngineFactory = $loupeEngineFactory;
+        $this->insertTagParser = $insertTagParser;
     }
 
     public function __invoke(DataContainer $dc): void
@@ -57,6 +60,9 @@ class FeaturedItemsSubmitCallbackListener
 
         $row = $dc->getCurrentRecord();
 
+        $content = $this->insertTagParser->replaceInline($row['text']);
+        $searchText = strip_tags($this->insertTagParser->replaceInline($row['suchtext']));
+
         $document = [
             'id' => "featured-" . $dc->id,
             'is_featured'=> true,
@@ -67,8 +73,8 @@ class FeaturedItemsSubmitCallbackListener
             'title' => $row['title'],
             'category' => null,
             'tags' => null,
-            'content' => $row['text'],
-            'search' => $row['suchtext']
+            'content' => $content,
+            'search' => $searchText
         ];
         
         // Dokument neu hinzufügen (Upsert)

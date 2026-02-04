@@ -91,7 +91,13 @@ $GLOBALS['TL_DCA']['tl_search_lite_featured_items'] = array
 		(
 			'search'                  => true,
 			'inputType'               => 'textarea',
-			'eval'                    => array('mandatory'=>true, 'tl_class'=>'clr'),
+			'eval'                    => array(
+				'mandatory'=>true,
+				'tl_class'=>'clr',
+				'rte' => 'tinyMCE',
+				'allowHtml' => true,
+				'preserveTags' => true
+			),
 			'sql'                     => "text NOT NULL default ''"
 		),
 		'suchtext' => array

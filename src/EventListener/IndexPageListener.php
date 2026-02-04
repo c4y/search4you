@@ -10,6 +10,7 @@
 namespace C4Y\SearchLiteBundle\EventListener;
 
 use Contao\CoreBundle\DependencyInjection\Attribute\AsHook;
+use Contao\CoreBundle\InsertTag\InsertTagParser;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Contao\PageModel;
 use Codefog\TagsBundle\Manager\DefaultManager;
@@ -32,18 +33,25 @@ class IndexPageListener
      * @var LoupeEngineFactory
      */
     private $loupeEngineFactory;
+
+    /**
+     * @var InsertTagParser
+     */
+    private $insertTagParser;
     
     /**
      * IndexPageListener constructor.
      */
-    public function __construct(KernelInterface $kernel, LoupeEngineFactory $loupeEngineFactory) {
+    public function __construct(KernelInterface $kernel, LoupeEngineFactory $loupeEngineFactory, InsertTagParser $insertTagParser) {
         $this->tagsManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_tags_manager');
         $this->categoryManager = $kernel->getContainer()->get('codefog_tags.manager.search_lite_category_manager');
         $this->loupeEngineFactory = $loupeEngineFactory;
+        $this->insertTagParser = $insertTagParser;
     }
     
     public function __invoke(string $content, array $pageData, array &$indexData): void
     {
+        $content = $this->insertTagParser->replaceInline($content);
         $this->addWebpageToLoupe($content, $indexData);
     }
 
@@ -117,6 +125,33 @@ class IndexPageListener
     {
         // Entferne den Titel
         $html = preg_replace('/<title>(.*?)<\/title>/i', '', $html);
+
+        // Entferne nicht zu indexierende Bereiche (Contao Standard)
+        while (($intStart = strpos($html, '<!-- indexer::stop -->')) !== false) {
+            if (($intEnd = strpos($html, '<!-- indexer::continue -->', $intStart)) !== false) {
+                $intCurrent = $intStart;
+
+                // Handle nested tags
+                while (($intNested = strpos($html, '<!-- indexer::stop -->', $intCurrent + 22)) !== false && $intNested < $intEnd) {
+                    if (($intNewEnd = strpos($html, '<!-- indexer::continue -->', $intEnd + 26)) !== false) {
+                        $intEnd = $intNewEnd;
+                        $intCurrent = $intNested;
+                    } else {
+                        break;
+                    }
+                }
+
+                $html = substr($html, 0, $intStart) . substr($html, $intEnd + 26);
+            } else {
+                break;
+            }
+        }
+
+        // Nur den Body-Bereich indexieren, falls vorhanden
+        if (preg_match('/<\/head>/i', $html, $matches, PREG_OFFSET_CAPTURE)) {
+            $offset = strlen($matches[0][0]) + $matches[0][1];
+            $html = substr($html, $offset);
+        }
 
         // Ersetze Bilder durch ihre Alt-Texte, falls vorhanden
         $html = preg_replace('/<img\b[^>]*alt=[\'"]([^\'"]*)[\'"](.*?)>/i', '[Bild: $1]', $html);
