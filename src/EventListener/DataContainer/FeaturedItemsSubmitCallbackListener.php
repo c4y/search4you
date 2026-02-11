@@ -62,6 +62,7 @@ class FeaturedItemsSubmitCallbackListener
 
         $content = $this->insertTagParser->replaceInline($row['text']);
         $searchText = strip_tags($this->insertTagParser->replaceInline($row['suchtext']));
+        $url = $this->insertTagParser->replaceInline($row['url']);
 
         $document = [
             'id' => "featured-" . $dc->id,
@@ -69,7 +70,7 @@ class FeaturedItemsSubmitCallbackListener
             'origin' => 'featured',
             'root' => $row['pid'],
             'sorting' => $row['sorting'],
-            'url' => $row['url'],
+            'url' => $url,
             'title' => $row['title'],
             'category' => null,
             'tags' => null,
