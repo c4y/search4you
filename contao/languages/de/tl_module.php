@@ -21,3 +21,8 @@ $GLOBALS['TL_LANG']['tl_module']['search_lite_perPage'] = [
     'Einträge pro Seite',
     'Anzahl der Treffer, die pro Seite angezeigt werden (0 = keine Paginierung)',
 ];
+
+$GLOBALS['TL_LANG']['tl_module']['search_lite_hide_tags'] = [
+    'Kategorien/Tags ausblenden',
+    'Wählen Sie diese Option, um die Kategorien- und Tags-Filter im Frontend auszublenden.',
+];

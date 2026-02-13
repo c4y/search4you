@@ -25,6 +25,7 @@ class SearchModule extends AbstractFrontendModuleController
         $template->featuredCategory = $model->search_lite_featured_category;
         $template->rootPage = $model->search_lite_rootPage;
         $template->perPage = $model->search_lite_perPage ?: 10;
+        $template->hideTags = $model->search_lite_hide_tags;
 
         return $template->getResponse();
     }

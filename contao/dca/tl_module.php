@@ -10,7 +10,7 @@
 use C4Y\SearchLiteBundle\EventListener\DataContainer\SearchLiteModuleListener;
 
 $GLOBALS['TL_DCA']['tl_module']['palettes']['search_module'] =
-    '{title_legend},name,type,search_lite_featured_category,search_lite_rootPage,search_lite_perPage'
+    '{title_legend},name,type,search_lite_featured_category,search_lite_rootPage,search_lite_perPage,search_lite_hide_tags'
 ;
 
 $GLOBALS['TL_DCA']['tl_module']['fields']['search_lite_featured_category'] = array(
@@ -31,4 +31,10 @@ $GLOBALS['TL_DCA']['tl_module']['fields']['search_lite_perPage'] = array(
     'inputType' => 'text',
     'eval' => array('tl_class' => 'w50', 'rgxp' => 'natural'),
     'sql' => "int(10) unsigned NOT NULL default 10"
+);
+
+$GLOBALS['TL_DCA']['tl_module']['fields']['search_lite_hide_tags'] = array(
+    'inputType' => 'checkbox',
+    'eval' => array('tl_class' => 'clr'),
+    'sql' => "char(1) NOT NULL default ''"
 );

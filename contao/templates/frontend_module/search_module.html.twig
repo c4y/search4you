@@ -101,6 +101,10 @@
         grid-template-columns: 250px 1fr;
     }
 
+    .sl-search-wrapper[data-hide-tags="1"] {
+        grid-template-columns: 1fr;
+    }
+
     .sl-filter-toggle {
         display: none;
     }
@@ -304,8 +308,11 @@
 }
 </style>
 
+{% if not hideTags %}
 <div class="sl-filter-toggle">Filter (ein-/ausblenden)</div>
-<div class="sl-search-wrapper" data-limit="{{ resultLimit }}">
+{% endif %}
+<div class="sl-search-wrapper" data-limit="{{ resultLimit }}" data-hide-tags="{{ hideTags ? '1' : '0' }}">
+    {% if not hideTags %}
     <div class="sl-categories">
         <h3>Kategorien</h3>
         <div id="sl-category-list">
@@ -321,6 +328,7 @@
             <!-- Available tags will be shown here -->
         </div>
     </div>
+    {% endif %}
 
     <div class="sl-main">
         <div class="sl-search-bar">
@@ -351,6 +359,7 @@
     if (!wrapper) return;
 
     const limit = parseInt(wrapper.dataset.limit, 10) || 10;
+    const hideTags = wrapper.dataset.hideTags === '1';
     const rootPage = {{ rootPage|default('0') }};
     const featuredCategory = {{ featuredCategory|default('0') }};
     const inputEl = document.getElementById('sl-search-input');
@@ -393,6 +402,8 @@
     }
 
     function renderCategories() {
+        if (hideTags || !categoryListEl) return;
+        
         // Clear and rebuild category list
         categoryListEl.innerHTML = '';
         
@@ -451,6 +462,8 @@
     }
     
     function renderTags() {
+        if (hideTags || !tagListEl) return;
+        
         // Clear and rebuild tag list
         tagListEl.innerHTML = '';
         
@@ -490,6 +503,8 @@
     }
     
     function renderActiveFilters() {
+        if (hideTags || !activeFiltersEl) return;
+        
         activeFiltersEl.innerHTML = '';
         
         // Only show active tag in the filters section
@@ -746,49 +761,52 @@
     const filterToggle = document.querySelector('.sl-filter-toggle');
     const categoriesSection = document.querySelector('.sl-categories');
     
-    // Set initial state
-    if (window.innerWidth < 600) {
-        categoriesSection.classList.add('hidden');
-    } else {
-        categoriesSection.classList.remove('hidden');
-    }
-    
-    // Toggle filter visibility
-    filterToggle.addEventListener('click', () => {
-        categoriesSection.classList.toggle('hidden');
-        
-        // Force reflow to ensure the transition works
-        void categoriesSection.offsetHeight;
-        
-        // Toggle max-height for smooth animation
-        if (categoriesSection.classList.contains('hidden')) {
-            categoriesSection.style.maxHeight = '0';
+    // Only initialize filter toggle if categories are shown
+    if (!hideTags && filterToggle && categoriesSection) {
+        // Set initial state
+        if (window.innerWidth < 600) {
+            categoriesSection.classList.add('hidden');
         } else {
-            categoriesSection.style.maxHeight = '80vh';
-        }
-    });
-    
-    // Update on window resize
-    function updateCategoriesVisibility() {
-        if (window.innerWidth >= 600) {
             categoriesSection.classList.remove('hidden');
-            categoriesSection.style.maxHeight = '80vh';
-        } else if (!categoriesSection.classList.contains('hidden')) {
-            categoriesSection.style.maxHeight = '80vh';
-        } else {
-            categoriesSection.style.maxHeight = '0';
         }
+        
+        // Toggle filter visibility
+        filterToggle.addEventListener('click', () => {
+            categoriesSection.classList.toggle('hidden');
+            
+            // Force reflow to ensure the transition works
+            void categoriesSection.offsetHeight;
+            
+            // Toggle max-height for smooth animation
+            if (categoriesSection.classList.contains('hidden')) {
+                categoriesSection.style.maxHeight = '0';
+            } else {
+                categoriesSection.style.maxHeight = '80vh';
+            }
+        });
+        
+        // Update on window resize
+        function updateCategoriesVisibility() {
+            if (window.innerWidth >= 600) {
+                categoriesSection.classList.remove('hidden');
+                categoriesSection.style.maxHeight = '80vh';
+            } else if (!categoriesSection.classList.contains('hidden')) {
+                categoriesSection.style.maxHeight = '80vh';
+            } else {
+                categoriesSection.style.maxHeight = '0';
+            }
+        }
+        
+        // Initial update
+        updateCategoriesVisibility();
+        
+        // Update on resize with debounce
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(updateCategoriesVisibility, 100);
+        });
     }
-    
-    // Initial update
-    updateCategoriesVisibility();
-    
-    // Update on resize with debounce
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(updateCategoriesVisibility, 100);
-    });
 
     // Initialize
     initFromUrl();
