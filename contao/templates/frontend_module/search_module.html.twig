@@ -566,7 +566,7 @@
 
             div.innerHTML =
                 '<h4 class="sl-result-title">' +
-                    '<a href="' + (r.url || '#') + '" target="_blank" rel="noopener">' +
+                    '<a href="' + decodeURIComponent(r.url || '#') + '" target="_blank" rel="noopener">' +
                         (r.title || 'Ohne Titel') +
                     '</a>' +
                 '</h4>' +

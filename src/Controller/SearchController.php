@@ -64,7 +64,12 @@ class SearchController extends AbstractController
         if (empty($highlightedContent)) {
             return [];
         }
-        
+
+        // Ensure content is valid UTF-8
+        if (!mb_check_encoding($highlightedContent, 'UTF-8')) {
+            $highlightedContent = mb_convert_encoding($highlightedContent, 'UTF-8', 'ISO-8859-1');
+        }
+
         // Split by highlight tags
         $parts = preg_split('/(<em>.*?<\/em>)/i', $highlightedContent, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
         
@@ -73,22 +78,34 @@ class SearchController extends AbstractController
         
         foreach ($parts as $part) {
             // If it's a highlighted part
-            if (preg_match('/<em>(.*?)<\/em>/i', $part)) {
-                $currentContext .= $part;
+            if (preg_match('/<em>(.*?)<\/em>/i', $part, $matches)) {
+                // Ensure the highlighted text is properly encoded
+                $highlightedText = $matches[1];
+                if (!mb_check_encoding($highlightedText, 'UTF-8')) {
+                    $highlightedText = mb_convert_encoding($highlightedText, 'UTF-8', 'ISO-8859-1');
+                }
+                $currentContext .= '<em>' . $highlightedText . '</em>';
             } 
             // Regular text
             else {
+                // Ensure text is valid UTF-8
+                if (!mb_check_encoding($part, 'UTF-8')) {
+                    $part = mb_convert_encoding($part, 'UTF-8', 'ISO-8859-1');
+                }
+                
                 // Truncate long non-highlighted parts
-                if (strlen($part) > $snippetSize * 2) {
+                if (mb_strlen($part, 'UTF-8') > $snippetSize * 2) {
                     // Keep first and last parts of long text
-                    $currentContext .= substr($part, 0, $snippetSize) . '...' . substr($part, -$snippetSize);
+                    $startPart = mb_substr($part, 0, $snippetSize, 'UTF-8');
+                    $endPart = mb_substr($part, -$snippetSize, $snippetSize, 'UTF-8');
+                    $currentContext .= $startPart . '...' . $endPart;
                 } else {
                     $currentContext .= $part;
                 }
             }
             
             // If context is getting too long, start a new one
-            if (strlen($currentContext) > $snippetSize * 3) {
+            if (mb_strlen($currentContext, 'UTF-8') > $snippetSize * 3) {
                 $contexts[] = $currentContext;
                 $currentContext = '';
             }
@@ -111,6 +128,11 @@ class SearchController extends AbstractController
     private function ensureUtf8($data)
     {
         if (is_string($data)) {
+            // Check if the string is valid UTF-8
+            if (!mb_check_encoding($data, 'UTF-8')) {
+                // Try to convert from ISO-8859-1 to UTF-8
+                $data = mb_convert_encoding($data, 'UTF-8', 'ISO-8859-1');
+            }
             // Remove any invalid UTF-8 characters
             return mb_convert_encoding($data, 'UTF-8', 'UTF-8');
         } elseif (is_array($data)) {
